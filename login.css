@@ -574,3 +574,41 @@ select option:hover,
     flex-shrink: 0;
 }
 
+.auth-extra-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.demo-login-action-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 21, 21, 0.45);
+    background: rgba(255, 21, 21, 0.08);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.demo-login-action-btn:hover {
+    background: rgba(255, 21, 21, 0.16);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(255, 21, 21, 0.2);
+}
+
+[data-theme="light"] .demo-login-action-btn {
+    background: #fff5f5;
+    border-color: rgba(255, 21, 21, 0.35);
+    color: #b30000;
+}
+

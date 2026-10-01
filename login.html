@@ -46,8 +46,14 @@
                 </div>
 
                 <!-- TITLE & SUBTITLE -->
-                <h1 class="auth-title">PLAYER SIGN IN</h1>
-                <p class="auth-subtitle">Sign in to your Spike Cross account to access your player profile, submit speed records, and view leaderboard ranks.</p>
+                <h1 class="auth-title" id="authTitle">PLAYER SIGN IN</h1>
+                <p class="auth-subtitle" id="authSubtitle">Sign in to your Spike Cross account to access your player profile, submit speed records, and view leaderboard ranks.</p>
+
+                <!-- AUTH TABS: SIGN IN / REGISTER -->
+                <div class="auth-mode-tabs">
+                    <button type="button" class="auth-mode-tab active" id="tabSignIn">⚡ SIGN IN</button>
+                    <button type="button" class="auth-mode-tab" id="tabSignUp">👤 CREATE ACCOUNT</button>
+                </div>
 
                 <!-- ALERT BOX -->
                 <div class="auth-alert" id="authAlert" style="display:none;"></div>
@@ -87,11 +93,55 @@
                         <span class="btn-text">SIGN IN TO SPIKE CROSS</span>
                         <span class="btn-glow"></span>
                     </button>
+                </form>
 
-                    <div class="auth-divider">
-                        <span>OR</span>
+                <!-- REGISTER FORM -->
+                <form id="registerForm" class="auth-form" style="display:none;">
+                    <div class="form-group">
+                        <label for="regIgn">SPIKE CROSS IN-GAME NAME (IGN) *</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🎮</span>
+                            <input type="text" id="regIgn" placeholder="e.g. ThunderAce_IN" required>
+                        </div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="regUid">SPIKE CROSS UID *</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🆔</span>
+                            <input type="text" id="regUid" placeholder="e.g. SC-849201" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regEmail">EMAIL ADDRESS *</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉️</span>
+                            <input type="email" id="regEmail" placeholder="player@gmail.com" required autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regPassword">PASSWORD (MIN 6 CHARACTERS) *</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="regPassword" placeholder="Create a strong password" required minlength="6" autocomplete="new-password">
+                            <button type="button" class="pwd-toggle" data-target="regPassword" title="Show/Hide">👁</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="regBtn">
+                        <span class="btn-text">CREATE ACCOUNT &amp; PROCEED</span>
+                        <span class="btn-glow"></span>
+                    </button>
+                </form>
+
+                <!-- SHARED SOCIAL & DEMO LOGIN -->
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+
+                <div class="auth-extra-actions">
                     <button type="button" class="google-auth-btn" id="googleLoginBtn">
                         <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -101,11 +151,15 @@
                         </svg>
                         <span>CONTINUE WITH GOOGLE</span>
                     </button>
-                </form>
+
+                    <button type="button" class="demo-login-action-btn" id="demoQuickLoginBtn">
+                        <span>⚡ Instant Demo Player (Quick Test)</span>
+                    </button>
+                </div>
 
                 <!-- FOOTER NOTICE -->
                 <div class="auth-card-footer">
-                    <p>💡 First time here? Enter your email &amp; password or sign in with Google. You can submit your full player profile (character, UID, speed, proof) after logging in!</p>
+                    <p id="authFooterTip">💡 Enter your login details or sign in with Google. Your IGN, UID, and character stats will be automatically remembered!</p>
                 </div>
 
 

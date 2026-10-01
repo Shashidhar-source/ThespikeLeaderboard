@@ -477,6 +477,41 @@
             </div>
         </div>
 
+        <!-- MODAL: LOGIN REQUIRED PROMPT -->
+        <div class="modal-backdrop" id="loginPromptModal" style="display:none;">
+            <div class="modal-content login-prompt-modal-content">
+                <div class="modal-header">
+                    <div class="record-modal-badge">🔐 SPIKE CROSS AUTHENTICATION</div>
+                    <h3>LOGIN REQUIRED</h3>
+                    <button class="modal-close" id="closeLoginPromptBtn" title="Close dialog">&times;</button>
+                </div>
+                <div class="login-prompt-body">
+                    <div class="login-prompt-icon">🏐</div>
+                    <h4>Sign In to Save Your Profile &amp; Records</h4>
+                    <p>
+                        To save your Spike Cross player details, remember your setups, and submit verified spike speeds to India's leaderboard, please log in or create an account first.
+                    </p>
+                    <div class="login-prompt-benefits">
+                        <div class="benefit-item">✨ <strong>Auto-Saves Details:</strong> Your IGN, UID, state &amp; setup are permanently remembered on this device</div>
+                        <div class="benefit-item">⚡ <strong>Live Leaderboard:</strong> Your verified speed ranks dynamically across India</div>
+                        <div class="benefit-item">🔒 <strong>Account Security:</strong> Prevents unauthorized changes to your player tag</div>
+                    </div>
+                    <div class="modal-actions login-modal-actions">
+                        <button type="button" class="action-btn secondary-btn" id="cancelLoginPromptBtn">Cancel</button>
+                        <a href="login.html?redirect=profile" class="action-btn primary-btn login-modal-cta" id="goToLoginBtn">
+                            <span>⚡</span> SIGN IN / REGISTER NOW
+                        </a>
+                    </div>
+                    <div class="login-prompt-subactions">
+                        <span class="subaction-divider">or test instantly</span>
+                        <button type="button" class="demo-quick-auth-btn" id="modalDemoLoginBtn">
+                            <span>🎮</span> Continue with Instant Demo Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- NOTIFICATION TOAST -->
         <div id="toast" class="admin-toast"></div>

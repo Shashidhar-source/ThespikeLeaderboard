@@ -2713,6 +2713,149 @@ select:-webkit-autofill {
     transform: translateY(-1px);
 }
 
+/* ── LOGIN REQUIRED PROMPT MODAL ────────────────────────── */
+.modal-content.login-prompt-modal-content {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,21,21,0.45);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.85), 0 0 50px rgba(255,21,21,0.25);
+    width: 100%;
+    max-width: 500px;
+    padding: 26px 24px;
+    animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    position: relative;
+    text-align: center;
+}
+
+[data-theme="light"] .modal-content.login-prompt-modal-content {
+    background: #ffffff;
+    border-color: rgba(255,21,21,0.3);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 35px rgba(255,21,21,0.15);
+}
+
+.login-prompt-icon {
+    font-size: 38px;
+    width: 68px;
+    height: 68px;
+    margin: 8px auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 21, 21, 0.12);
+    border: 2px solid rgba(255, 21, 21, 0.35);
+    box-shadow: 0 0 25px rgba(255, 21, 21, 0.25);
+}
+
+.login-prompt-body h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.login-prompt-body p {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.login-prompt-benefits {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: left;
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+[data-theme="light"] .login-prompt-benefits {
+    background: #fdfdfd;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.benefit-item {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.benefit-item strong {
+    color: var(--accent-red);
+}
+
+.modal-actions.login-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+.modal-actions.login-modal-actions .login-modal-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+.login-prompt-subactions {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+[data-theme="light"] .login-prompt-subactions {
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+.subaction-divider {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.demo-quick-auth-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px dashed rgba(255, 21, 21, 0.4);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.demo-quick-auth-btn:hover {
+    background: rgba(255, 21, 21, 0.12);
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+    transform: translateY(-1px);
+}
+
 /* ══════════════════════════════════════════════════════════════
    OFFICIAL SOCIAL CHANNELS (HEADER NAV)
    ══════════════════════════════════════════════════════════════ */

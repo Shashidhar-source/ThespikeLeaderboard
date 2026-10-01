@@ -12,6 +12,7 @@ import {
     collection, 
     doc, 
     setDoc, 
+    deleteDoc,
     getDocs, 
     onSnapshot, 
     query, 
@@ -445,6 +446,57 @@ document.getElementById('charFilter')?.addEventListener('change',  e => { fChar 
 document.getElementById('stateFilter')?.addEventListener('change', e => { fState = e.target.value; updateAll(); });
 
 /* ── FIREBASE FIRESTORE REAL-TIME SYNC ──────────────────────── */
+function mergeWithLocalPlayers(remoteList) {
+    const map = new Map();
+    // 1. Add all valid remote players
+    if (Array.isArray(remoteList)) {
+        remoteList.forEach(p => {
+            if (p && p.tag) map.set(p.tag.toUpperCase(), p);
+        });
+    }
+
+    // 2. Preserve any local player who has saved a valid record
+    try {
+        const rawLocal = localStorage.getItem(STORAGE_KEY);
+        if (rawLocal) {
+            const parsed = JSON.parse(rawLocal);
+            if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                    const tagU = (p.tag || '').toUpperCase();
+                    if (tagU && !MOCK_TAGS.has(tagU) && (parseInt(p.speed) || 0) > 0) {
+                        if (!map.has(tagU)) map.set(tagU, p);
+                    }
+                });
+            }
+        }
+        // Also check if current user has an active speed record
+        const rawUser = localStorage.getItem(CURRENT_USER_KEY);
+        if (rawUser) {
+            const u = JSON.parse(rawUser);
+            if (u && u.ign && (parseInt(u.speed) || 0) > 0) {
+                const uTag = u.ign.toUpperCase();
+                if (!map.has(uTag)) {
+                    map.set(uTag, {
+                        tag: u.ign,
+                        speed: parseInt(u.speed),
+                        character: u.character || 'BLACK THUNDER NISHIKAWA',
+                        setup: u.setup || 'Power 120 / Jump 120',
+                        state: u.state || u.region || 'India',
+                        city: u.city || '',
+                        proof: u.proof || '',
+                        uid: u.uid || '',
+                        updatedAt: u.updatedAt || new Date().toISOString()
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('mergeWithLocalPlayers notice:', e);
+    }
+
+    return Array.from(map.values());
+}
+
 async function initFirebaseLeaderboard() {
     try {
         const q = query(collection(db, "players"), orderBy("speed", "desc"));
@@ -466,7 +518,8 @@ async function initFirebaseLeaderboard() {
                 }
             });
 
-            allPlayers = alignAndSortPlayers(cleanList);
+            const merged = mergeWithLocalPlayers(cleanList);
+            allPlayers = alignAndSortPlayers(merged);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
             onPlayersUpdated();
         }, (error) => {
@@ -509,21 +562,142 @@ function onPlayersUpdated() {
 }
 
 /* ── USER SESSION & SUBMISSION OPTION ──────────────────────── */
-const recordModal      = document.getElementById('playerRecordModal');
-const recordForm       = document.getElementById('recordSubmitForm');
-const modalLoggedUser  = document.getElementById('modalLoggedUser');
-const recordIgnInput   = document.getElementById('recordIgn');
-const recordUidInput   = document.getElementById('recordUid');
-const recordSpeedInput = document.getElementById('recordSpeed');
-const recordCharInput  = document.getElementById('recordCharacter');
-const recordSetupInput = document.getElementById('recordSetup');
-const recordStateInput = document.getElementById('recordState');
-const recordCityInput  = document.getElementById('recordCity');
-const recordProofInput = document.getElementById('recordProof');
-const inspectFeedback  = document.getElementById('proofInspectStatus');
+const REMEMBERED_DETAILS_KEY = 'spike-remembered-player-details';
+
+const recordModal          = document.getElementById('playerRecordModal');
+const recordForm           = document.getElementById('recordSubmitForm');
+const modalLoggedUser      = document.getElementById('modalLoggedUser');
+const recordIgnInput       = document.getElementById('recordIgn');
+const recordUidInput       = document.getElementById('recordUid');
+const recordSpeedInput     = document.getElementById('recordSpeed');
+const recordCharInput      = document.getElementById('recordCharacter');
+const recordSetupInput     = document.getElementById('recordSetup');
+const recordStateInput     = document.getElementById('recordState');
+const recordCityInput      = document.getElementById('recordCity');
+const recordProofInput     = document.getElementById('recordProof');
+const inspectFeedback      = document.getElementById('proofInspectStatus');
 const profileAvatarPreview = document.getElementById('profileAvatarPreview');
 const profileAvatarName    = document.getElementById('profileAvatarName');
 const profileAvatarStatus  = document.getElementById('profileAvatarStatus');
+const loginPromptModal     = document.getElementById('loginPromptModal');
+
+/* ── PERSISTENT REMEMBERED DETAILS SYSTEM ─────────────────────
+   Ensures player never has to re-enter their IGN, UID, character, setup, etc. */
+function getRememberedDetails() {
+    try {
+        const raw = localStorage.getItem(REMEMBERED_DETAILS_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    try {
+        const rawUser = localStorage.getItem(CURRENT_USER_KEY);
+        if (rawUser) return JSON.parse(rawUser);
+    } catch (e) {}
+    return null;
+}
+
+function saveRememberedDetails(details) {
+    if (!details) return;
+    try {
+        const existing = getRememberedDetails() || {};
+        const merged = { ...existing, ...details, savedAt: Date.now() };
+        localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(merged));
+    } catch (e) {
+        console.warn('saveRememberedDetails note:', e);
+    }
+}
+
+function persistFormDraft() {
+    saveRememberedDetails({
+        ign: recordIgnInput ? recordIgnInput.value.trim() : '',
+        uid: recordUidInput ? recordUidInput.value.trim() : '',
+        character: recordCharInput ? recordCharInput.value : '',
+        speed: recordSpeedInput ? recordSpeedInput.value : '',
+        setup: recordSetupInput ? recordSetupInput.value.trim() : '',
+        state: recordStateInput ? recordStateInput.value : '',
+        city: recordCityInput ? recordCityInput.value.trim() : '',
+        proof: recordProofInput ? recordProofInput.value.trim() : ''
+    });
+}
+
+// Auto-remember details in real-time as player types
+[recordIgnInput, recordUidInput, recordSpeedInput, recordSetupInput, recordCityInput, recordProofInput].forEach(inp => {
+    inp?.addEventListener('input', persistFormDraft);
+});
+recordCharInput?.addEventListener('change', () => {
+    persistFormDraft();
+    updateProfileAvatarPreview(recordCharInput.value, recordIgnInput?.value);
+});
+recordStateInput?.addEventListener('change', persistFormDraft);
+
+function isUserLoggedIn() {
+    try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return false;
+        const u = JSON.parse(raw);
+        return !!(u && (u.ign || u.email || u.firebaseUid));
+    } catch (e) {
+        return false;
+    }
+}
+
+function getCurrentUser() {
+    try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/* ── LOGIN PROMPT MODAL ────────────────────────────────────── */
+function openLoginPromptModal() {
+    if (loginPromptModal) {
+        loginPromptModal.style.display = 'flex';
+    } else {
+        if (confirm('🔐 Login Required: Please sign in or create an account to save your profile and leaderboard records. Go to login page now?')) {
+            window.location.href = 'login.html?redirect=profile';
+        }
+    }
+}
+
+function closeLoginPromptModal() {
+    if (loginPromptModal) {
+        loginPromptModal.style.display = 'none';
+    }
+}
+
+document.getElementById('closeLoginPromptBtn')?.addEventListener('click', closeLoginPromptModal);
+document.getElementById('cancelLoginPromptBtn')?.addEventListener('click', closeLoginPromptModal);
+loginPromptModal?.addEventListener('click', (e) => {
+    if (e.target === loginPromptModal) closeLoginPromptModal();
+});
+
+// Quick demo login directly from login prompt modal
+document.getElementById('modalDemoLoginBtn')?.addEventListener('click', () => {
+    const remembered = getRememberedDetails() || {};
+    const demoUser = {
+        ign: remembered.ign || 'SPIKE_MASTER10',
+        uid: remembered.uid || 'SC-100001',
+        email: 'spikemaster@thespike.in',
+        region: remembered.state || 'Karnataka',
+        state: remembered.state || 'Karnataka',
+        city: remembered.city || 'Bengaluru',
+        character: remembered.character || 'BLACK THUNDER NISHIKAWA',
+        speed: parseInt(remembered.speed) || 198,
+        setup: remembered.setup || 'Power 120 / Jump 120',
+        proof: remembered.proof || 'https://youtube.com/shorts/demo',
+        isDemo: true,
+        loggedInAt: Date.now()
+    };
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(demoUser));
+    saveRememberedDetails(demoUser);
+    closeLoginPromptModal();
+    checkUserSession();
+    showToast(`⚡ Demo account connected! Logged in as ${demoUser.ign}`, 'success');
+    setTimeout(() => {
+        openRecordSubmissionModal(demoUser);
+    }, 200);
+});
 
 function updateProfileAvatarPreview(charName, ign) {
     if (!profileAvatarPreview) return;
@@ -539,20 +713,13 @@ function updateProfileAvatarPreview(charName, ign) {
     }
 }
 
-recordCharInput?.addEventListener('change', () => {
-    updateProfileAvatarPreview(recordCharInput.value, recordIgnInput?.value);
-});
-
 function handleProfileOrSubmitClick() {
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    if (raw) {
-        try {
-            const user = JSON.parse(raw);
-            openRecordSubmissionModal(user);
-            return;
-        } catch (e) {}
+    if (!isUserLoggedIn()) {
+        openLoginPromptModal();
+        return;
     }
-    openRecordSubmissionModal(null);
+    const user = getCurrentUser();
+    openRecordSubmissionModal(user);
 }
 
 // Hook up all Profile and Submit buttons across page
@@ -562,20 +729,20 @@ document.getElementById('floatingProfileBtn')?.addEventListener('click', handleP
 
 function checkUserSession() {
     try {
-        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        const user = getCurrentUser();
         const navSlot = document.getElementById('userNavSlot');
         const heroBtnText = document.getElementById('heroBtnText');
         const filterBtn = document.getElementById('filterBarSubmitBtn');
         const floatingBtn = document.getElementById('floatingProfileBtn');
 
-        if (raw) {
-            const user = JSON.parse(raw);
+        if (user && (user.ign || user.email)) {
+            const displayName = user.ign || user.email.split('@')[0];
             if (navSlot) {
                 navSlot.innerHTML = `
                     <div class="user-session-bar">
                         <div class="logged-in-badge" title="UID: ${user.uid || 'N/A'}">
                             <span class="user-ball">🏐</span>
-                            <span class="user-ign">${user.ign || 'Player'}</span>
+                            <span class="user-ign">${displayName}</span>
                         </div>
                         <button class="record-nav-btn" id="openRecordModalNavBtn">
                             👤 My Profile &amp; Submit
@@ -586,13 +753,13 @@ function checkUserSession() {
             }
 
             if (heroBtnText) {
-                heroBtnText.textContent = `👤 MY PROFILE (${user.ign}) & SUBMIT RECORD`;
+                heroBtnText.textContent = `👤 MY PROFILE (${displayName}) & SUBMIT RECORD`;
             }
             if (filterBtn) {
-                filterBtn.innerHTML = `<span>⚡</span> My Profile &amp; Record (${user.ign})`;
+                filterBtn.innerHTML = `<span>⚡</span> My Profile &amp; Record (${displayName})`;
             }
             if (floatingBtn) {
-                floatingBtn.innerHTML = `<span class="btn-fire">⚡</span><span class="btn-text">👤 ${user.ign} · PROFILE</span>`;
+                floatingBtn.innerHTML = `<span class="btn-fire">⚡</span><span class="btn-text">👤 ${displayName} · PROFILE</span>`;
             }
 
             document.getElementById('openRecordModalNavBtn')?.addEventListener('click', () => {
@@ -630,27 +797,29 @@ function checkUserSession() {
     }
 }
 
-// Sync Firebase Auth state changes
-onAuthStateChanged(auth, (user) => {
-    if (!user) {
-        const raw = localStorage.getItem(CURRENT_USER_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.firebaseUid && !parsed.isDemo) {
-                localStorage.removeItem(CURRENT_USER_KEY);
-                checkUserSession();
-            }
-        }
-    } else {
-        checkUserSession();
+// Sync Firebase Auth state changes without wiping offline local session
+onAuthStateChanged(auth, (fbUser) => {
+    if (fbUser) {
+        try {
+            const current = getCurrentUser() || {};
+            const updated = {
+                ...current,
+                email: fbUser.email || current.email || '',
+                ign: current.ign || fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Player'),
+                firebaseUid: fbUser.uid
+            };
+            localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
+            saveRememberedDetails(updated);
+        } catch (e) {}
     }
+    checkUserSession();
 });
 
 function openRecordSubmissionModal(user = null) {
     if (!recordModal) return;
 
-    const raw = localStorage.getItem(CURRENT_USER_KEY);
-    const activeUser = user || (raw ? JSON.parse(raw) : null);
+    const activeUser = user || getCurrentUser();
+    const remembered = getRememberedDetails() || {};
     const statusStrip = document.getElementById('profileStatusStrip');
 
     if (modalLoggedUser) {
@@ -659,18 +828,33 @@ function openRecordSubmissionModal(user = null) {
 
     // Prefill existing player record if available from leaderboard list
     let existing = null;
-    if (activeUser && activeUser.ign) {
-        existing = allPlayers.find(p => p.tag.toLowerCase() === activeUser.ign.toLowerCase());
+    const lookupTag = (activeUser?.ign || remembered.ign || '').toLowerCase();
+    if (lookupTag) {
+        existing = allPlayers.find(p => (p.tag || '').toLowerCase() === lookupTag);
     }
 
-    if (recordIgnInput)   recordIgnInput.value   = activeUser ? (activeUser.ign || '') : '';
-    if (recordUidInput)   recordUidInput.value   = activeUser ? (activeUser.uid || '') : (existing ? existing.uid : '');
-    if (recordCharInput)  recordCharInput.value  = existing ? existing.character : (activeUser?.character || 'BLACK THUNDER NISHIKAWA');
-    if (recordSpeedInput) recordSpeedInput.value = existing ? existing.speed : (activeUser?.speed || '');
-    if (recordSetupInput) recordSetupInput.value = existing ? existing.setup : (activeUser?.setup || 'Power 120 / Jump 120');
-    if (recordStateInput) recordStateInput.value = existing ? existing.state : (activeUser?.state || activeUser?.region || '');
-    if (recordCityInput)  recordCityInput.value  = existing ? existing.city : (activeUser?.city || '');
-    if (recordProofInput) recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (activeUser?.proof && activeUser.proof !== '#' ? activeUser.proof : '');
+    // Prefill ALL details using priority: activeUser -> remembered -> existing -> defaults
+    const chosenIgn       = activeUser?.ign || remembered.ign || existing?.tag || '';
+    const chosenUid       = activeUser?.uid || remembered.uid || existing?.uid || '';
+    const chosenCharacter = activeUser?.character || remembered.character || existing?.character || 'BLACK THUNDER NISHIKAWA';
+    const chosenSpeed     = (activeUser?.speed !== undefined && activeUser?.speed !== '' && activeUser?.speed !== 0)
+                            ? activeUser.speed
+                            : (remembered.speed !== undefined && remembered.speed !== '' && remembered.speed !== 0 ? remembered.speed : (existing?.speed || ''));
+    const chosenSetup     = activeUser?.setup || remembered.setup || existing?.setup || 'Power 120 / Jump 120';
+    const chosenState     = activeUser?.state || activeUser?.region || remembered.state || existing?.state || '';
+    const chosenCity      = activeUser?.city || remembered.city || existing?.city || '';
+    const chosenProof     = (activeUser?.proof && activeUser.proof !== '#')
+                            ? activeUser.proof
+                            : (remembered.proof && remembered.proof !== '#' ? remembered.proof : (existing?.proof && existing.proof !== '#' ? existing.proof : ''));
+
+    if (recordIgnInput)   recordIgnInput.value   = chosenIgn;
+    if (recordUidInput)   recordUidInput.value   = chosenUid;
+    if (recordCharInput)  recordCharInput.value  = chosenCharacter;
+    if (recordSpeedInput) recordSpeedInput.value = chosenSpeed;
+    if (recordSetupInput) recordSetupInput.value = chosenSetup;
+    if (recordStateInput) recordStateInput.value = chosenState;
+    if (recordCityInput)  recordCityInput.value  = chosenCity;
+    if (recordProofInput) recordProofInput.value = chosenProof;
 
     // Configure profile status banner
     if (statusStrip) {
@@ -748,15 +932,51 @@ function triggerLinkInspection(url) {
     }
 }
 
+/* ── NON-BLOCKING BACKGROUND FIREBASE SYNC ──────────────────── */
+async function syncRecordToFirebase(updatedUser, recordData, speed) {
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firebase sync timed out')), 6000)
+    );
+
+    const syncTask = async () => {
+        const ign = updatedUser.ign;
+        const userDocId = updatedUser.firebaseUid ? updatedUser.firebaseUid : ign.toLowerCase();
+        
+        await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
+        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
+            email: updatedUser.email || '',
+            ign,
+            uid: updatedUser.uid || '',
+            firebaseUid: updatedUser.firebaseUid || ''
+        }, { merge: true });
+
+        if (speed > 0) {
+            await setDoc(doc(db, "players", ign.toUpperCase()), recordData);
+        }
+    };
+
+    try {
+        await Promise.race([syncTask(), timeoutPromise]);
+        console.log('Firebase Cloud sync completed successfully.');
+    } catch (fbErr) {
+        console.warn('Firebase profile save note (offline copy saved):', fbErr);
+    }
+}
+
 // Player record form submission
 recordForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const rawUser = localStorage.getItem(CURRENT_USER_KEY);
-    let user = rawUser ? JSON.parse(rawUser) : null;
+    // 1. Enforce login requirement
+    if (!isUserLoggedIn()) {
+        showToast('🔐 Please log in first to save your profile & records.', 'warning');
+        openLoginPromptModal();
+        return;
+    }
 
-    const ign       = recordIgnInput ? recordIgnInput.value.trim() : (user ? user.ign : '');
-    const uid       = recordUidInput ? recordUidInput.value.trim() : (user ? user.uid : '');
+    const user = getCurrentUser() || {};
+    const ign       = recordIgnInput ? recordIgnInput.value.trim() : (user.ign || '');
+    const uid       = recordUidInput ? recordUidInput.value.trim() : (user.uid || '');
     const speed     = parseInt(recordSpeedInput.value) || 0;
     const character = recordCharInput.value;
     const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
@@ -780,7 +1000,10 @@ recordForm?.addEventListener('submit', async (e) => {
     }
 
     const submitBtn = document.getElementById('submitRecordBtn');
-    if (submitBtn) submitBtn.disabled = true;
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>⏳</span> SAVING...';
+    }
 
     const recordData = {
         tag: ign,
@@ -795,7 +1018,7 @@ recordForm?.addEventListener('submit', async (e) => {
     };
 
     const updatedUser = {
-        ...(user || {}),
+        ...user,
         ign,
         uid,
         character,
@@ -808,31 +1031,30 @@ recordForm?.addEventListener('submit', async (e) => {
         updatedAt: new Date().toISOString()
     };
 
-    // 1. Save to Firebase Firestore
-    try {
-        const userDocId = (user && user.firebaseUid) ? user.firebaseUid : ign.toLowerCase();
-        await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
-        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-            email: (user && user.email) ? user.email : '',
-            ign,
-            uid,
-            firebaseUid: (user && user.firebaseUid) ? user.firebaseUid : ''
-        }, { merge: true });
-
-        // If player has speed record, push to "players" leaderboard collection
-        if (speed > 0) {
-            await setDoc(doc(db, "players", ign.toUpperCase()), recordData);
-        }
-    } catch (fbErr) {
-        console.warn('Firebase profile save note (fallback active):', fbErr);
-    }
-
-    // 2. Update local state & immediately align list
+    // 2. IMMEDIATE LOCAL PERSISTENCE: Never blocks or freezes
+    // A. Update current user session
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+    
+    // B. Permanently remember details on this device
+    saveRememberedDetails({
+        ign,
+        uid,
+        character,
+        speed,
+        setup,
+        state,
+        city,
+        proof
+    });
 
+    // C. Update leaderboard list immediately
     if (speed > 0) {
-        const oldIgn = user ? (user.ign || '').toUpperCase() : '';
-        const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase() || (oldIgn && p.tag.toUpperCase() === oldIgn));
+        const oldIgn = user.ign ? user.ign.toUpperCase() : '';
+        const existingIdx = allPlayers.findIndex(p => 
+            (p.tag || '').toUpperCase() === ign.toUpperCase() || 
+            (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
+        );
+
         if (existingIdx >= 0) {
             allPlayers[existingIdx] = recordData;
         } else {
@@ -844,17 +1066,24 @@ recordForm?.addEventListener('submit', async (e) => {
         onPlayersUpdated();
     }
 
+    // D. Refresh UI & close modal
     checkUserSession();
     closeRecordModal();
-    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>💾</span> SAVE PROFILE &amp; LEADERBOARD RECORD';
+    }
 
-    const newRank = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase()) + 1;
+    const newRank = allPlayers.findIndex(p => (p.tag || '').toUpperCase() === ign.toUpperCase()) + 1;
     if (speed > 0 && newRank > 0) {
         showToast(`🎉 Profile & Record saved! ${ign} is ranked #${newRank} with ${speed} KM/H!`, 'success');
         document.getElementById('leaderboard-section')?.scrollIntoView({ behavior: 'smooth' });
     } else {
-        showToast(`🎉 Spike Cross profile details updated successfully!`, 'success');
+        showToast(`🎉 Spike Cross profile details updated & remembered successfully!`, 'success');
     }
+
+    // 3. BACKGROUND SYNC TO FIREBASE (Non-blocking)
+    syncRecordToFirebase(updatedUser, recordData, speed);
 });
 
 // Toast helper

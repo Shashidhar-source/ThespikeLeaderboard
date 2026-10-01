@@ -165,8 +165,134 @@ function formatAuthError(err) {
     }
 }
 
+const REMEMBERED_DETAILS_KEY = 'spike-remembered-player-details';
+const urlParams = new URLSearchParams(window.location.search);
+const redirectTarget = 'index.html?action=profile';
+
+// Prefill saved IGN or Email if remembered
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        const raw = localStorage.getItem(REMEMBERED_DETAILS_KEY) || localStorage.getItem(CURRENT_USER_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            const loginInp = document.getElementById('loginIdentifier');
+            if (loginInp && !loginInp.value) {
+                loginInp.value = data.ign || data.email || '';
+            }
+            const regIgn = document.getElementById('regIgn');
+            const regUid = document.getElementById('regUid');
+            const regEmail = document.getElementById('regEmail');
+            if (regIgn && !regIgn.value && data.ign) regIgn.value = data.ign;
+            if (regUid && !regUid.value && data.uid) regUid.value = data.uid;
+            if (regEmail && !regEmail.value && data.email) regEmail.value = data.email;
+        }
+    } catch (e) {}
+});
+
+// ── AUTH MODE TABS (SIGN IN / REGISTER) ─────────────────────
+const tabSignIn     = document.getElementById('tabSignIn');
+const tabSignUp     = document.getElementById('tabSignUp');
+const loginForm     = document.getElementById('loginForm');
+const registerForm  = document.getElementById('registerForm');
+const authTitle     = document.getElementById('authTitle');
+const authSubtitle  = document.getElementById('authSubtitle');
+const authFooterTip = document.getElementById('authFooterTip');
+
+tabSignIn?.addEventListener('click', () => {
+    tabSignIn.classList.add('active');
+    tabSignUp?.classList.remove('active');
+    if (loginForm) loginForm.style.display = 'block';
+    if (registerForm) registerForm.style.display = 'none';
+    if (authTitle) authTitle.textContent = 'PLAYER SIGN IN';
+    if (authSubtitle) authSubtitle.textContent = 'Sign in to your Spike Cross account to access your player profile, submit speed records, and view leaderboard ranks.';
+    if (authFooterTip) authFooterTip.innerHTML = '💡 Enter your login details or sign in with Google. Your IGN, UID, and character stats will be automatically remembered!';
+    clearAlert();
+});
+
+tabSignUp?.addEventListener('click', () => {
+    tabSignUp.classList.add('active');
+    tabSignIn?.classList.remove('active');
+    if (loginForm) loginForm.style.display = 'none';
+    if (registerForm) registerForm.style.display = 'block';
+    if (authTitle) authTitle.textContent = 'PLAYER REGISTRATION';
+    if (authSubtitle) authSubtitle.textContent = 'Create your Spike Cross account to save your player profile, UID, and spike speed records permanently.';
+    if (authFooterTip) authFooterTip.innerHTML = '💡 After registration, your profile is immediately initialized and your stats will be remembered on this device.';
+    clearAlert();
+});
+
+// ── REGISTRATION HANDLER ────────────────────────────────────
+registerForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlert();
+
+    const ign      = document.getElementById('regIgn')?.value.trim();
+    const uid      = document.getElementById('regUid')?.value.trim();
+    const email    = document.getElementById('regEmail')?.value.trim();
+    const password = document.getElementById('regPassword')?.value;
+    const regBtn   = document.getElementById('regBtn');
+
+    if (!ign || !uid || !email || !password) {
+        showAlert('Please fill in all registration fields.');
+        return;
+    }
+
+    if (password.length < 6) {
+        showAlert('Password must be at least 6 characters.');
+        return;
+    }
+
+    if (regBtn) regBtn.disabled = true;
+    showAlert('Creating your Spike Cross account...', false);
+
+    try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const authUser = cred.user;
+
+        try {
+            await updateProfile(authUser, { displayName: ign });
+        } catch (e) {}
+
+        const profile = {
+            ign,
+            email,
+            uid,
+            character: 'BLACK THUNDER NISHIKAWA',
+            region: 'India',
+            state: 'India',
+            speed: 0,
+            proof: '#',
+            firebaseUid: authUser.uid,
+            createdAt: new Date().toISOString()
+        };
+
+        try {
+            await setDoc(doc(db, "users", authUser.uid), profile, { merge: true });
+            await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
+                email,
+                ign,
+                uid,
+                firebaseUid: authUser.uid
+            }, { merge: true });
+        } catch (dbErr) {
+            console.warn('Firestore registration doc save note:', dbErr);
+        }
+
+        const sessionUser = {
+            ...profile,
+            loggedInAt: Date.now()
+        };
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
+        localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(sessionUser));
+
+        showAlert(`🎉 Account created! Welcome, ${ign}! Opening your player profile...`, false);
+        setTimeout(() => { window.location.href = redirectTarget; }, 900);
+    } catch (err) {
+        if (regBtn) regBtn.disabled = false;
+        showAlert(formatAuthError(err));
+    }
+});
+
 // ── LOGIN HANDLER (FIREBASE AUTH EMAIL/PASSWORD) ─────────────
-const loginForm = document.getElementById('loginForm');
 loginForm?.addEventListener('submit', async (e) => {
 
     e.preventDefault();
@@ -183,7 +309,6 @@ loginForm?.addEventListener('submit', async (e) => {
 
     if (loginBtn) loginBtn.disabled = true;
     showAlert('Authenticating...', false);
-
 
     let emailToAuth = identifier;
 
@@ -239,13 +364,15 @@ loginForm?.addEventListener('submit', async (e) => {
             }
         } catch (e) {}
 
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
+        const sessionUser = {
             ...profile,
             loggedInAt: Date.now()
-        }));
+        };
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
+        localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(sessionUser));
 
         showAlert(`🔥 Welcome back, ${profile.ign}! Opening your player profile...`, false);
-        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
+        setTimeout(() => { window.location.href = redirectTarget; }, 900);
         return;
     }
 
@@ -259,25 +386,53 @@ loginForm?.addEventListener('submit', async (e) => {
             uid: 'SC-100001',
             email: 'spikemaster@thespike.in',
             region: 'Karnataka',
+            state: 'Karnataka',
             character: 'BLACK THUNDER NISHIKAWA',
             speed: 198,
             proof: 'https://youtube.com/shorts/demo',
+            isDemo: true,
             loggedInAt: Date.now()
         };
         localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(demoUser));
+        localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(demoUser));
         showAlert(`⚡ Demo login successful! Opening ${demoUser.ign}'s profile...`, false);
-        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
+        setTimeout(() => { window.location.href = redirectTarget; }, 900);
         return;
     }
 
     showAlert(formatAuthError(authError));
 });
 
+// ── INSTANT DEMO LOGIN BUTTON ───────────────────────────────
+document.getElementById('demoQuickLoginBtn')?.addEventListener('click', () => {
+    let remembered = {};
+    try {
+        const raw = localStorage.getItem(REMEMBERED_DETAILS_KEY);
+        if (raw) remembered = JSON.parse(raw);
+    } catch (e) {}
+
+    const demoUser = {
+        ign: remembered.ign || 'SPIKE_MASTER10',
+        uid: remembered.uid || 'SC-100001',
+        email: 'spikemaster@thespike.in',
+        region: remembered.state || 'Karnataka',
+        state: remembered.state || 'Karnataka',
+        character: remembered.character || 'BLACK THUNDER NISHIKAWA',
+        speed: parseInt(remembered.speed) || 198,
+        proof: remembered.proof || 'https://youtube.com/shorts/demo',
+        isDemo: true,
+        loggedInAt: Date.now()
+    };
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(demoUser));
+    localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(demoUser));
+    showAlert(`⚡ Demo login successful! Opening ${demoUser.ign}'s profile...`, false);
+    setTimeout(() => { window.location.href = redirectTarget; }, 900);
+});
+
 // ── GOOGLE AUTHENTICATION HANDLER ────────────────────────────
 async function handleGoogleAuth() {
     clearAlert();
     showAlert('Connecting to Google Account...', false);
-
 
     try {
         const provider = new GoogleAuthProvider();
@@ -316,13 +471,15 @@ async function handleGoogleAuth() {
             console.warn('Google auth Firestore note:', dbErr);
         }
 
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
+        const sessionUser = {
             ...profile,
             loggedInAt: Date.now()
-        }));
+        };
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionUser));
+        localStorage.setItem(REMEMBERED_DETAILS_KEY, JSON.stringify(sessionUser));
 
         showAlert(`🎉 Google Login Successful! Opening ${profile.ign}'s profile...`, false);
-        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
+        setTimeout(() => { window.location.href = redirectTarget; }, 900);
     } catch (err) {
         console.error('Google Sign-In Error:', err);
         showAlert(formatAuthError(err));
