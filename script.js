@@ -1,9 +1,24 @@
 /* ============================================================
    THE SPIKE INDIA — script.js
+   Firebase Firestore Real-time Leaderboard,
+   Dynamic Speedometer, Link Inspector & Player Record Submission
    ============================================================ */
+
+import { 
+    db, 
+    collection, 
+    doc, 
+    setDoc, 
+    getDocs, 
+    onSnapshot, 
+    query, 
+    orderBy, 
+    inspectProofLink 
+} from "./firebase-config.js";
 
 const SPEED_SCALE_MAX = 220; // Gauge full-scale reference (0 to 220 km/h)
 const STORAGE_KEY     = 'spike-india-players';
+const CURRENT_USER_KEY= 'spike-current-user';
 
 // ── AVAILABLE CHARACTER IMAGES IN images/ ───────────────────
 const CHARACTER_FILES = [
@@ -21,20 +36,20 @@ const CHARACTER_FILES = [
   "YOUNGSUP"
 ];
 
-// ── DEFAULT PLAYER DATA (Using the 12 character images) ─────
+// ── DEFAULT PLAYER ROSTER (Fallback & Cloud Seed) ───────────
 const DEFAULT_PLAYERS = [
-  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"#" },
-  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"#" },
-  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"#" },
-  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"#" },
-  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"#" },
-  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"#" },
-  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"#" },
-  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"#" },
-  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"#" },
-  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"#" },
-  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"#" },
-  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"#" },
+  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"https://youtube.com/shorts/sample1" },
+  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"https://youtube.com/shorts/sample2" },
+  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"https://youtube.com/shorts/sample3" },
+  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"https://youtube.com/shorts/sample4" },
+  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"https://youtube.com/shorts/sample5" },
+  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"https://youtube.com/shorts/sample6" },
+  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"https://youtube.com/shorts/sample7" },
+  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"https://youtube.com/shorts/sample8" },
+  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"https://youtube.com/shorts/sample9" },
+  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"https://youtube.com/shorts/sample10" },
+  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"https://youtube.com/shorts/sample11" },
+  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"https://youtube.com/shorts/sample12" },
   { tag:"ZenitsuPlayz",      speed:178, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 116 / Jump 118", state:"Kerala",         city:"Kochi",       proof:"#" },
   { tag:"RoyalSpiker",       speed:176, character:"NISHIKAWA",                            setup:"Power 115 / Jump 116", state:"Punjab",         city:"Chandigarh",  proof:"#" },
   { tag:"SpikeStorm",        speed:175, character:"HEESEONG",                             setup:"Power 116 / Jump 116", state:"Bihar",          city:"Patna",       proof:"#" },
@@ -45,17 +60,17 @@ const DEFAULT_PLAYERS = [
   { tag:"NextGenSpike",      speed:168, character:"DAVE",                                 setup:"Power 112 / Jump 115", state:"Haryana",        city:"Gurugram",    proof:"#" },
 ];
 
+let allPlayers = [];
+let srch = '', fChar = '', fState = '';
+
 /* ── CHARACTER & PLAYER IMAGE RESOLVER ────────────────────────
-   Matches exact character name to transparent PNG in images/ folder.
-   If background-removed PNG exists, uses it! Fallback to JPG or Monogram badge. */
+   Matches exact character name to transparent PNG in images/ folder. */
 function resolveCharacterImageInfo(charName, playerName) {
     const normChar   = (charName || '').trim().toUpperCase();
     const normPlayer = (playerName || '').trim();
 
-    // 1. Direct match with available character files
     let matchedName = CHARACTER_FILES.find(f => f.toUpperCase() === normChar);
 
-    // 2. Friendly alias/partial match
     if (!matchedName && normChar) {
         if (normChar.includes('HEES')) matchedName = 'HEESEONG';
         else if (normChar.includes('BLACK') || normChar.includes('THUNDER')) matchedName = 'BLACK THUNDER NISHIKAWA';
@@ -101,23 +116,6 @@ function getPlayerAvatarMarkup(player, rank, sizeClass = '') {
     `;
 }
 
-/* ── LOAD PLAYERS from localStorage (admin edits) or defaults ── */
-function loadPlayers() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length) {
-                // If old players from previous session exist with non-matching characters, update them
-                return parsed
-                    .sort((a, b) => b.speed - a.speed)
-                    .map((p, i) => ({ ...p, rank: i + 1 }));
-            }
-        }
-    } catch (e) {}
-    return DEFAULT_PLAYERS.map((p, i) => ({ ...p, rank: i + 1 }));
-}
-
 /* ── THEME SUPPORT ─────────────────────────────────────────── */
 const html        = document.documentElement;
 const themeToggle = document.getElementById('themeToggle');
@@ -159,8 +157,7 @@ function mkParticle() {
         life: 1, decay: Math.random() * 0.005 + 0.002
     };
 }
-
-let pts = Array.from({ length: 80 }, mkParticle);
+let pts = Array.from({ length: 70 }, mkParticle);
 
 function drawParticles() {
     if (!canvas || !ctx) return;
@@ -184,10 +181,10 @@ function drawParticles() {
 }
 if (canvas) drawParticles();
 
-/* ── EASING FUNCTION ───────────────────────────────────────── */
+/* ── EASING ────────────────────────────────────────────────── */
 function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 
-/* ── SPEEDOMETER: Driven by the actual #1 highest speed ─────── */
+/* ── SPEEDOMETER: Driven by the live #1 highest speed ───────── */
 function animateGauge(topSpeed) {
     const needle = document.getElementById('gaugeNeedle');
     const arc    = document.querySelector('.gauge-arc-fill');
@@ -260,7 +257,7 @@ function populateFilters(players) {
     }
 }
 
-/* ── PODIUM (Top 3 with Gold #1 Center & Runner-Up #2 Highlight) ── */
+/* ── PODIUM ───────────────────────────────────────────────── */
 function renderPodium(list) {
     const top3   = list.slice(0, 3);
     const medals = ['🥇', '🥈', '🥉'];
@@ -295,12 +292,26 @@ function renderPodium(list) {
     });
 }
 
-/* ── TABLE ───────────────────────────────────────────────── */
+/* ── TABLE & PROOF INSPECTOR STATUS ────────────────────────── */
 function rankCell(r) {
     if (r === 1) return `<div class="rank-cell rank-1-cell" title="India #1 Champion">1</div>`;
     if (r === 2) return `<div class="rank-cell rank-2-cell" title="India #2 Runner-Up">2</div>`;
     if (r === 3) return `<div class="rank-cell rank-3-cell" title="India #3 Bronze">3</div>`;
     return `<div class="rank-default">#${r}</div>`;
+}
+
+function renderProofButton(proofUrl) {
+    const check = inspectProofLink(proofUrl);
+    if (!check.isValid || check.status === 'missing') {
+        return `<span class="proof-btn disabled" title="No video proof submitted">NO PROOF</span>`;
+    }
+    if (check.isFake) {
+        return `<span class="proof-btn fake-warning" title="${check.message}">⚠️ FAKE LINK</span>`;
+    }
+    if (check.status === 'verified') {
+        return `<a class="proof-btn verified" href="${proofUrl}" target="_blank" title="${check.platform} Verified Video Proof">▶ WATCH <span class="badge-v">✓</span></a>`;
+    }
+    return `<a class="proof-btn" href="${proofUrl}" target="_blank" title="${check.message}">▶ WATCH</a>`;
 }
 
 function renderTable(list) {
@@ -337,40 +348,32 @@ function renderTable(list) {
                     <div class="location-city">${p.city}</div>
                 </div>
             </td>
-            <td><a class="proof-btn" href="${p.proof || '#'}" target="_blank">▶ WATCH</a></td>
+            <td>${renderProofButton(p.proof)}</td>
         </tr>
     `).join('');
 }
 
-/* ── USER SESSION IN NAVBAR ───────────────────────────────── */
-function checkUserSession() {
-    try {
-        const raw = localStorage.getItem('spike-current-user');
-        const navSlot = document.getElementById('userNavSlot');
-        if (!navSlot) return;
-
-        if (raw) {
-            const user = JSON.parse(raw);
-            navSlot.innerHTML = `
-                <div class="logged-in-badge">
-                    <span class="user-ball">🏐</span>
-                    <span class="user-ign">${user.ign}</span>
-                    <button class="logout-btn" id="logoutBtn" title="Log out">✕</button>
-                </div>
-            `;
-            document.getElementById('logoutBtn')?.addEventListener('click', () => {
-                localStorage.removeItem('spike-current-user');
-                checkUserSession();
-            });
-        } else {
-            navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login</a>`;
-        }
-    } catch (e) {}
+/* ── AUTOMATIC SPEED ALIGNMENT & SORTING ──────────────────────
+   Detects highest speed and aligns players automatically in rank order */
+function alignAndSortPlayers(rawList) {
+    return rawList
+        .filter(p => p && p.tag)
+        .map(p => ({
+            ...p,
+            speed: parseInt(p.speed) || 0
+        }))
+        .sort((a, b) => b.speed - a.speed)
+        .map((p, i) => ({
+            ...p,
+            rank: i + 1
+        }));
 }
 
-/* ── FILTER & SEARCH STATE ────────────────────────────────── */
-let allPlayers   = [];
-let srch = '', fChar = '', fState = '';
+function updateAll() {
+    const f = filtered();
+    renderPodium(f);
+    renderTable(f);
+}
 
 function filtered() {
     return allPlayers.filter(p =>
@@ -380,23 +383,279 @@ function filtered() {
     );
 }
 
-function updateAll() {
-    const f = filtered();
-    renderPodium(f);
-    renderTable(f);
-}
-
 document.getElementById('searchInput')?.addEventListener('input',  e => { srch   = e.target.value; updateAll(); });
 document.getElementById('charFilter')?.addEventListener('change',  e => { fChar  = e.target.value; updateAll(); });
 document.getElementById('stateFilter')?.addEventListener('change', e => { fState = e.target.value; updateAll(); });
 
-/* ── INIT ────────────────────────────────────────────────── */
-window.addEventListener('DOMContentLoaded', () => {
-    allPlayers = loadPlayers();
-    const top  = allPlayers[0]?.speed || 198;
+/* ── FIREBASE FIRESTORE REAL-TIME SYNC ──────────────────────── */
+async function initFirebaseLeaderboard() {
+    try {
+        const q = query(collection(db, "players"), orderBy("speed", "desc"));
+
+        // Real-time updates from Firestore
+        onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const cloudList = [];
+                snapshot.forEach(docSnap => {
+                    cloudList.push(docSnap.data());
+                });
+
+                allPlayers = alignAndSortPlayers(cloudList);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+                onPlayersUpdated();
+            } else {
+                // First run: seed Firestore with default player roster
+                seedDefaultPlayersToFirebase();
+            }
+        }, (error) => {
+            console.warn("Firestore onSnapshot note (using local cache):", error);
+            loadLocalFallback();
+        });
+    } catch (err) {
+        console.warn("Firebase initialization note:", err);
+        loadLocalFallback();
+    }
+}
+
+async function seedDefaultPlayersToFirebase() {
+    console.log("Seeding initial players to Firebase Firestore...");
+    allPlayers = alignAndSortPlayers(DEFAULT_PLAYERS);
+    onPlayersUpdated();
+
+    for (const p of DEFAULT_PLAYERS) {
+        try {
+            await setDoc(doc(db, "players", p.tag.toUpperCase()), {
+                ...p,
+                updatedAt: new Date().toISOString()
+            });
+        } catch (e) {}
+    }
+}
+
+function loadLocalFallback() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) {
+                allPlayers = alignAndSortPlayers(parsed);
+                onPlayersUpdated();
+                return;
+            }
+        }
+    } catch (e) {}
+    allPlayers = alignAndSortPlayers(DEFAULT_PLAYERS);
+    onPlayersUpdated();
+}
+
+function onPlayersUpdated() {
+    const top = allPlayers[0]?.speed || 198;
     animateGauge(top);
     animateCounters(allPlayers);
     populateFilters(allPlayers);
     updateAll();
+}
+
+/* ── USER SESSION & SUBMISSION OPTION ──────────────────────── */
+const recordModal      = document.getElementById('playerRecordModal');
+const recordForm       = document.getElementById('recordSubmitForm');
+const modalLoggedUser  = document.getElementById('modalLoggedUser');
+const recordSpeedInput = document.getElementById('recordSpeed');
+const recordCharInput  = document.getElementById('recordCharacter');
+const recordSetupInput = document.getElementById('recordSetup');
+const recordStateInput = document.getElementById('recordState');
+const recordCityInput  = document.getElementById('recordCity');
+const recordProofInput = document.getElementById('recordProof');
+const inspectFeedback  = document.getElementById('proofInspectStatus');
+
+function checkUserSession() {
+    try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        const navSlot = document.getElementById('userNavSlot');
+        if (!navSlot) return;
+
+        if (raw) {
+            const user = JSON.parse(raw);
+            navSlot.innerHTML = `
+                <div class="user-session-bar">
+                    <div class="logged-in-badge">
+                        <span class="user-ball">🏐</span>
+                        <span class="user-ign">${user.ign}</span>
+                    </div>
+                    <button class="action-btn record-nav-btn" id="openRecordModalNavBtn">
+                        ⚡ Submit / Update Record
+                    </button>
+                    <button class="logout-btn" id="logoutBtn" title="Log out">✕</button>
+                </div>
+            `;
+
+            document.getElementById('openRecordModalNavBtn')?.addEventListener('click', () => {
+                openRecordSubmissionModal(user);
+            });
+
+            document.getElementById('logoutBtn')?.addEventListener('click', () => {
+                localStorage.removeItem(CURRENT_USER_KEY);
+                checkUserSession();
+                showToast('Logged out.');
+            });
+        } else {
+            navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login / Register</a>`;
+        }
+    } catch (e) {}
+}
+
+function openRecordSubmissionModal(user) {
+    if (!recordModal) return;
+    if (modalLoggedUser) modalLoggedUser.textContent = user.ign;
+
+    // Prefill existing player record if available
+    const existing = allPlayers.find(p => p.tag.toLowerCase() === user.ign.toLowerCase());
+
+    recordSpeedInput.value = existing ? existing.speed : (user.speed || '');
+    recordCharInput.value  = existing ? existing.character : (user.character || 'BLACK THUNDER NISHIKAWA');
+    recordSetupInput.value = existing ? existing.setup : 'Power 120 / Jump 120';
+    recordStateInput.value = existing ? existing.state : (user.region || '');
+    recordCityInput.value  = existing ? existing.city : '';
+    recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (user.proof && user.proof !== '#' ? user.proof : '');
+
+    triggerLinkInspection(recordProofInput.value);
+    recordModal.style.display = 'flex';
+    recordSpeedInput.focus();
+}
+
+function closeRecordModal() {
+    if (recordModal) recordModal.style.display = 'none';
+}
+
+document.getElementById('closeRecordModalBtn')?.addEventListener('click', closeRecordModal);
+document.getElementById('cancelRecordModalBtn')?.addEventListener('click', closeRecordModal);
+recordModal?.addEventListener('click', (e) => {
+    if (e.target === recordModal) closeRecordModal();
+});
+
+// Live link inspection as the player types or pastes their proof URL
+recordProofInput?.addEventListener('input', () => {
+    triggerLinkInspection(recordProofInput.value);
+});
+
+function triggerLinkInspection(url) {
+    if (!inspectFeedback) return;
+    const check = inspectProofLink(url);
+
+    if (!url || check.status === 'missing') {
+        inspectFeedback.style.display = 'none';
+        return;
+    }
+
+    inspectFeedback.style.display = 'block';
+
+    if (check.status === 'verified') {
+        inspectFeedback.className = 'proof-feedback-box valid';
+        inspectFeedback.innerHTML = `${check.icon} <strong>${check.platform} Verified:</strong> Genuine video link recognized.`;
+    } else if (check.status === 'fake') {
+        inspectFeedback.className = 'proof-feedback-box invalid';
+        inspectFeedback.innerHTML = `❌ <strong>Fake / Invalid Link:</strong> ${check.message}`;
+    } else if (check.warning) {
+        inspectFeedback.className = 'proof-feedback-box warning';
+        inspectFeedback.innerHTML = `⚠️ <strong>Notice:</strong> ${check.message}`;
+    }
+}
+
+// Player record form submission
+recordForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const rawUser = localStorage.getItem(CURRENT_USER_KEY);
+    if (!rawUser) {
+        alert('Please log in with your Spike Cross account to submit a record.');
+        return;
+    }
+    const user = JSON.parse(rawUser);
+
+    const speed     = parseInt(recordSpeedInput.value);
+    const character = recordCharInput.value;
+    const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
+    const state     = recordStateInput.value.trim() || 'India';
+    const city      = recordCityInput.value.trim() || 'India';
+    const proof     = recordProofInput.value.trim();
+
+    // Verify proof link
+    const check = inspectProofLink(proof);
+    if (check.isFake) {
+        alert(`❌ Cannot submit fake or invalid proof link: ${check.message}`);
+        recordProofInput.focus();
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitRecordBtn');
+    if (submitBtn) submitBtn.disabled = true;
+
+    const recordData = {
+        tag: user.ign,
+        speed,
+        character,
+        setup,
+        state,
+        city,
+        proof,
+        uid: user.uid || '',
+        updatedAt: new Date().toISOString()
+    };
+
+    // 1. Save to Firebase Firestore
+    try {
+        await setDoc(doc(db, "players", user.ign.toUpperCase()), recordData);
+        // Also update user profile
+        await setDoc(doc(db, "users", user.ign.toLowerCase()), {
+            ...user,
+            speed,
+            character,
+            proof,
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+    } catch (fbErr) {
+        console.warn('Firebase submission note:', fbErr);
+    }
+
+    // 2. Update local state & immediately align list
+    const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === user.ign.toUpperCase());
+    if (existingIdx >= 0) {
+        allPlayers[existingIdx] = recordData;
+    } else {
+        allPlayers.push(recordData);
+    }
+
+    allPlayers = alignAndSortPlayers(allPlayers);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+    onPlayersUpdated();
+
+    // Find the player's new rank
+    const newRank = allPlayers.findIndex(p => p.tag.toUpperCase() === user.ign.toUpperCase()) + 1;
+
+    closeRecordModal();
+    if (submitBtn) submitBtn.disabled = false;
+
+    showToast(`🎉 Record saved! ${user.ign} is now ranked #${newRank} with ${speed} KM/H!`, 'success');
+
+    // Smooth scroll to leaderboard
+    document.getElementById('leaderboard-section')?.scrollIntoView({ behavior: 'smooth' });
+});
+
+// Toast helper
+let toastTimer = null;
+function showToast(msg, type = '') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.innerHTML = msg;
+    toast.className = `admin-toast show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.className = 'admin-toast';
+    }, 4000);
+}
+
+/* ── INIT ────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
     checkUserSession();
+    initFirebaseLeaderboard();
 });

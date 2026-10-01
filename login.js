@@ -1,9 +1,21 @@
 /* ============================================================
    THE SPIKE INDIA — login.js
+   Firebase Authentication & User Profile Sync
    ============================================================ */
+
+import { 
+    db, 
+    doc, 
+    setDoc, 
+    getDoc, 
+    collection, 
+    getDocs, 
+    inspectProofLink 
+} from "./firebase-config.js";
 
 const USERS_STORAGE_KEY = 'spike-cross-users';
 const CURRENT_USER_KEY  = 'spike-current-user';
+const PLAYERS_STORAGE   = 'spike-india-players';
 
 // ── THEME SUPPORT ───────────────────────────────────────────
 const html        = document.documentElement;
@@ -71,11 +83,11 @@ function drawParticles() {
 if (canvas) drawParticles();
 
 // ── TABS (LOGIN / REGISTER) ─────────────────────────────────
-const tabLogin    = document.getElementById('tabLogin');
-const tabRegister = document.getElementById('tabRegister');
-const loginForm   = document.getElementById('loginForm');
-const registerForm= document.getElementById('registerForm');
-const authAlert   = document.getElementById('authAlert');
+const tabLogin     = document.getElementById('tabLogin');
+const tabRegister  = document.getElementById('tabRegister');
+const loginForm    = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const authAlert    = document.getElementById('authAlert');
 
 tabLogin?.addEventListener('click', () => {
     tabLogin.classList.add('active');
@@ -113,7 +125,7 @@ document.querySelectorAll('.pwd-toggle').forEach(btn => {
 // ── ALERTS ──────────────────────────────────────────────────
 function showAlert(msg, isError = true) {
     if (!authAlert) return;
-    authAlert.textContent = msg;
+    authAlert.innerHTML = msg;
     authAlert.className = `auth-alert ${isError ? 'error' : 'success'}`;
     authAlert.style.display = 'block';
 }
@@ -121,26 +133,40 @@ function showAlert(msg, isError = true) {
 function clearAlert() {
     if (authAlert) {
         authAlert.style.display = 'none';
-        authAlert.textContent = '';
+        authAlert.innerHTML = '';
     }
 }
 
-// ── USER REPOSITORY ─────────────────────────────────────────
-function getStoredUsers() {
-    try {
-        const raw = localStorage.getItem(USERS_STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        return [];
+// ── LIVE PROOF LINK INSPECTION ──────────────────────────────
+const regProofInput    = document.getElementById('regProof');
+const regProofFeedback = document.getElementById('regProofFeedback');
+
+regProofInput?.addEventListener('input', () => {
+    const val = regProofInput.value.trim();
+    if (!val) {
+        regProofFeedback.style.display = 'none';
+        return;
     }
-}
 
-function saveStoredUsers(users) {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-}
+    const inspection = inspectProofLink(val);
+    regProofFeedback.style.display = 'block';
 
-// ── REGISTRATION HANDLER ────────────────────────────────────
-registerForm?.addEventListener('submit', (e) => {
+    if (inspection.status === 'verified') {
+        regProofFeedback.className = 'proof-feedback-box valid';
+        regProofFeedback.innerHTML = `${inspection.icon} <strong>${inspection.platform} Verified:</strong> Genuine video link recognized.`;
+    } else if (inspection.status === 'fake') {
+        regProofFeedback.className = 'proof-feedback-box invalid';
+        regProofFeedback.innerHTML = `❌ <strong>Fake / Invalid Link:</strong> ${inspection.message}`;
+    } else if (inspection.warning) {
+        regProofFeedback.className = 'proof-feedback-box warning';
+        regProofFeedback.innerHTML = `⚠️ <strong>Notice:</strong> ${inspection.message}`;
+    } else {
+        regProofFeedback.style.display = 'none';
+    }
+});
+
+// ── REGISTRATION HANDLER (FIREBASE + LOCAL SYNC) ────────────
+registerForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
 
@@ -150,6 +176,7 @@ registerForm?.addEventListener('submit', (e) => {
     const region          = document.getElementById('regRegion')?.value;
     const character       = document.getElementById('regCharacter')?.value;
     const speed           = parseInt(document.getElementById('regSpeed')?.value) || 0;
+    const proof           = document.getElementById('regProof')?.value.trim() || '#';
     const password        = document.getElementById('regPassword')?.value;
     const confirmPassword = document.getElementById('regConfirmPassword')?.value;
     const terms           = document.getElementById('termsAgree')?.checked;
@@ -169,19 +196,23 @@ registerForm?.addEventListener('submit', (e) => {
         return;
     }
 
+    // Inspect proof link if provided
+    if (proof && proof !== '#') {
+        const check = inspectProofLink(proof);
+        if (check.isFake) {
+            showAlert(`❌ Proof Link Error: ${check.message}`);
+            return;
+        }
+    }
+
     if (!terms) {
         showAlert('Please accept the Spike Cross fair play terms.');
         return;
     }
 
-    const users = getStoredUsers();
-
-    // Check duplicate IGN or email
-    const exists = users.find(u => u.ign.toLowerCase() === ign.toLowerCase() || u.email.toLowerCase() === email);
-    if (exists) {
-        showAlert('An account with this IGN or Email already exists.');
-        return;
-    }
+    const regBtn = document.getElementById('registerBtn');
+    if (regBtn) regBtn.disabled = true;
+    showAlert('Saving profile to Firebase Cloud...', false);
 
     const newUser = {
         ign,
@@ -190,88 +221,169 @@ registerForm?.addEventListener('submit', (e) => {
         region,
         character,
         speed: speed || 0,
-        password, // stored locally
+        proof,
+        password,
         registeredAt: new Date().toISOString()
     };
 
-    users.push(newUser);
-    saveStoredUsers(users);
+    try {
+        // Save to Firebase Firestore "users" collection
+        await setDoc(doc(db, "users", ign.toLowerCase()), newUser);
 
-    showAlert(`Success! Spike Cross account for "${ign}" created. Switching to login...`, false);
-    
-    // Auto switch to login tab with prefilled IGN
+        // If a speed record was given, also push to "players" leaderboard collection
+        if (speed > 0) {
+            await setDoc(doc(db, "players", ign.toUpperCase()), {
+                tag: ign,
+                speed,
+                character,
+                setup: 'Power 120 / Jump 120',
+                state: region,
+                city: region,
+                proof,
+                uid,
+                updatedAt: new Date().toISOString()
+            });
+        }
+    } catch (fbErr) {
+        console.warn('Firebase sync note (using local cache as fallback):', fbErr);
+    }
+
+    // Also persist locally
+    try {
+        const localUsers = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
+        localUsers.push(newUser);
+        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(localUsers));
+
+        // If player has speed, also update local players list
+        if (speed > 0) {
+            const localPlayers = JSON.parse(localStorage.getItem(PLAYERS_STORAGE) || '[]');
+            const existingIdx = localPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase());
+            const pData = {
+                tag: ign,
+                speed,
+                character,
+                setup: 'Power 120 / Jump 120',
+                state: region,
+                city: region,
+                proof
+            };
+            if (existingIdx >= 0) localPlayers[existingIdx] = pData;
+            else localPlayers.push(pData);
+            localPlayers.sort((a, b) => b.speed - a.speed);
+            localStorage.setItem(PLAYERS_STORAGE, JSON.stringify(localPlayers));
+        }
+    } catch (e) {}
+
+    if (regBtn) regBtn.disabled = false;
+    showAlert(`🎉 Success! Spike Cross account "${ign}" created and synced to Firebase. Switching to login...`, false);
+
     setTimeout(() => {
         tabLogin.click();
         const idField = document.getElementById('loginIdentifier');
         if (idField) idField.value = ign;
         const pwdField = document.getElementById('loginPassword');
         if (pwdField) pwdField.focus();
-    }, 1500);
+    }, 1400);
 });
 
-// ── LOGIN HANDLER ───────────────────────────────────────────
-loginForm?.addEventListener('submit', (e) => {
+// ── LOGIN HANDLER (FIREBASE + LOCAL CACHE) ───────────────────
+loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
 
     const identifier = document.getElementById('loginIdentifier')?.value.trim().toLowerCase();
     const password   = document.getElementById('loginPassword')?.value;
-    const rememberMe = document.getElementById('rememberMe')?.checked;
+    const loginBtn   = document.getElementById('loginBtn');
 
     if (!identifier || !password) {
         showAlert('Please enter your IGN/Email and password.');
         return;
     }
 
-    const users = getStoredUsers();
+    if (loginBtn) loginBtn.disabled = true;
+    showAlert('Authenticating with Firebase...', false);
 
-    // Built-in test demo account support for convenience
-    let matchedUser = users.find(u => 
-        (u.ign.toLowerCase() === identifier || u.email.toLowerCase() === identifier) && 
-        u.password === password
-    );
+    let matchedUser = null;
 
-    // If no custom user found, check if it's demo or admin test
+    // 1. Try Firebase Firestore
+    try {
+        const userDoc = await getDoc(doc(db, "users", identifier));
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data.password === password) {
+                matchedUser = data;
+            }
+        } else {
+            // Also search by email
+            const snap = await getDocs(collection(db, "users"));
+            snap.forEach(d => {
+                const u = d.data();
+                if ((u.email?.toLowerCase() === identifier || u.ign?.toLowerCase() === identifier) && u.password === password) {
+                    matchedUser = u;
+                }
+            });
+        }
+    } catch (fbErr) {
+        console.warn('Firebase query fallback:', fbErr);
+    }
+
+    // 2. Fallback to local storage
+    if (!matchedUser) {
+        try {
+            const raw = localStorage.getItem(USERS_STORAGE_KEY);
+            const users = raw ? JSON.parse(raw) : [];
+            matchedUser = users.find(u => 
+                (u.ign.toLowerCase() === identifier || u.email.toLowerCase() === identifier) && 
+                u.password === password
+            );
+        } catch (e) {}
+    }
+
+    // 3. Demo / built-in test account
     if (!matchedUser && (identifier === 'spikemaster' || identifier === 'demo') && password === 'spike123') {
         matchedUser = {
             ign: 'SPIKE_MASTER10',
             uid: 'SC-100001',
             email: 'spikemaster@spikecross.in',
             region: 'Karnataka',
-            character: 'Nishikawa',
-            speed: 198
+            character: 'BLACK THUNDER NISHIKAWA',
+            speed: 198,
+            proof: 'https://youtube.com/shorts/demo'
         };
     }
 
+    if (loginBtn) loginBtn.disabled = false;
+
     if (!matchedUser) {
-        showAlert('Invalid credentials. Check your IGN/Email and password or register a new account.');
+        showAlert('Invalid credentials. Check your IGN/Email and password or register a new Spike Cross account.');
         return;
     }
 
-    // Set current active user session
+    // Set current active session
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
         ign: matchedUser.ign,
         uid: matchedUser.uid,
         character: matchedUser.character,
         region: matchedUser.region,
-        speed: matchedUser.speed,
+        speed: matchedUser.speed || 0,
+        proof: matchedUser.proof || '#',
         loggedInAt: Date.now()
     }));
 
-    showAlert(`Welcome back, ${matchedUser.ign}! Redirecting to leaderboard...`, false);
+    showAlert(`🔥 Welcome back, ${matchedUser.ign}! Redirecting to leaderboard...`, false);
 
     setTimeout(() => {
         window.location.href = 'index.html';
-    }, 1200);
+    }, 1000);
 });
 
-// Check if already logged in
+// Check if currently active session
 window.addEventListener('DOMContentLoaded', () => {
     try {
         const active = localStorage.getItem(CURRENT_USER_KEY);
         if (active) {
             const user = JSON.parse(active);
-            showAlert(`Currently logged in as ${user.ign}. (Log in again with another account or go back to Leaderboard)`, false);
+            showAlert(`Logged in as <strong>${user.ign}</strong>. You can switch accounts or <a href="index.html" style="color:var(--accent-red);font-weight:700;">Go to Leaderboard →</a>`, false);
         }
     } catch (e) {}
 });

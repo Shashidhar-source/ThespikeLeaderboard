@@ -1804,7 +1804,144 @@ tbody tr {
 }
 
 @media (max-width: 480px) {
-    .filter-group { flex-direction: column; width: 100%; }
+        .filter-group { flex-direction: column; width: 100%; }
     select { width: 100%; }
     .about-features { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
+   USER SESSION BAR & RECORD SUBMISSION MODAL
+   ============================================================ */
+
+.user-session-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.record-nav-btn {
+    background: linear-gradient(135deg, #ff4500, #ff0000);
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(255,21,21,0.4);
+    animation: recordGlowPulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes recordGlowPulse {
+    from { box-shadow: 0 0 8px rgba(255,21,21,0.3); }
+    to   { box-shadow: 0 0 18px rgba(255,69,0,0.7); }
+}
+
+.record-nav-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 22px rgba(255,21,21,0.8);
+}
+
+.record-modal-content {
+    max-width: 580px;
+}
+
+.record-modal-badge {
+    display: inline-block;
+    background: rgba(255,21,21,0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(255,21,21,0.3);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+
+.modal-intro {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    line-height: 1.4;
+}
+
+/* ── Live Proof Feedback Box (Link Inspector) ── */
+.proof-feedback-box {
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    animation: feedbackSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes feedbackSlide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.proof-feedback-box.valid {
+    background: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.4);
+    color: #4ef0a0;
+}
+
+.proof-feedback-box.invalid {
+    background: rgba(255, 30, 30, 0.15);
+    border: 1px solid rgba(255, 30, 30, 0.4);
+    color: #ff7777;
+}
+
+.proof-feedback-box.warning {
+    background: rgba(255, 170, 0, 0.15);
+    border: 1px solid rgba(255, 170, 0, 0.4);
+    color: #ffbb33;
+}
+
+/* ── Proof Button Badges in Table ── */
+.proof-btn.verified {
+    border-color: #00e676;
+    color: #00e676;
+    box-shadow: 0 0 10px rgba(0,230,118,0.25);
+}
+
+.proof-btn.verified:hover {
+    background: #00e676;
+    color: #000;
+    box-shadow: 0 0 18px rgba(0,230,118,0.6);
+}
+
+.proof-btn .badge-v {
+    font-size: 10px;
+    font-weight: 900;
+    margin-left: 2px;
+}
+
+.proof-btn.fake-warning {
+    border-color: #ff3333;
+    color: #ff6666;
+    background: rgba(255,30,30,0.08);
+    cursor: not-allowed;
+}
+
+.proof-btn.disabled {
+    border-color: rgba(255,255,255,0.1);
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.03);
+    cursor: default;
+    opacity: 0.6;
+}
+
+[data-theme="light"] .proof-btn.verified {
+    border-color: #009944;
+    color: #009944;
+}
+
+[data-theme="light"] .proof-btn.verified:hover {
+    background: #009944;
+    color: white;
 }

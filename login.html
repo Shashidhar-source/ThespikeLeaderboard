@@ -159,12 +159,18 @@
                             <div class="input-wrapper">
                                 <span class="input-icon">🏐</span>
                                 <select id="regCharacter" required>
-                                    <option value="Nishikawa">Nishikawa (All-Rounder S+)</option>
-                                    <option value="Oasis">Oasis (High Noon Spiker)</option>
-                                    <option value="Sanghyeon">Sanghyeon (Highlight MB)</option>
-                                    <option value="Solhwa">Solhwa (Legendary Setter)</option>
-                                    <option value="Masked Solhwa">Masked Solhwa (Awakened)</option>
-                                    <option value="Heesung">Heesung (Iron Wall MB)</option>
+                                    <option value="BLACK THUNDER NISHIKAWA">BLACK THUNDER NISHIKAWA</option>
+                                    <option value="NISHIKAWA">NISHIKAWA</option>
+                                    <option value="HEESEONG">HEESEONG</option>
+                                    <option value="JAEHYUN">JAEHYUN</option>
+                                    <option value="YOUNGSUP">YOUNGSUP</option>
+                                    <option value="RAUL">RAUL</option>
+                                    <option value="LUCAS">LUCAS</option>
+                                    <option value="DAVE">DAVE</option>
+                                    <option value="RYUHYEON">RYUHYEON</option>
+                                    <option value="JENNY">JENNY</option>
+                                    <option value="SARA">SARA</option>
+                                    <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL</option>
                                 </select>
                             </div>
                         </div>
@@ -175,8 +181,17 @@
                                 <span class="input-icon">⚡</span>
                                 <input type="number" id="regSpeed" min="50" max="230" placeholder="e.g. 185">
                             </div>
-                            <span class="field-hint">Optional, verified during leaderboard review</span>
+                            <span class="field-hint">Optional, automatically positions you in the leaderboard</span>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="regProof">VIDEO PROOF LINK (YOUTUBE / DRIVE / STREAMABLE)</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🎬</span>
+                            <input type="text" id="regProof" placeholder="https://youtube.com/shorts/... or https://youtu.be/...">
+                        </div>
+                        <div id="regProofFeedback" class="proof-feedback-box" style="display:none;"></div>
                     </div>
 
                     <div class="form-row">
@@ -215,7 +230,7 @@
 
                 <!-- FOOTER NOTICE -->
                 <div class="auth-card-footer">
-                    <p>🔒 Spike Cross accounts are stored securely locally. Tournament admins can verify your ID in the <a href="admin.html">Admin Panel</a>.</p>
+                    <p>🔥 Powered by Firebase Cloud. Spike Cross accounts and speed records synchronize in real time.</p>
                 </div>
 
             </div>
@@ -228,6 +243,6 @@
 
     </div>
 
-    <script src="login.js"></script>
+    <script type="module" src="login.js"></script>
 </body>
 </html>

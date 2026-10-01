@@ -243,17 +243,86 @@
             </div>
         </section>
 
-        <!-- FOOTER -->
-        <footer class="site-footer">
-            <div class="footer-logo">
-                THE SPIKE <span class="red-text">INDIA</span>
+        <!-- MODAL: PLAYER SUBMIT / UPDATE SPEED RECORD -->
+        <div class="modal-backdrop" id="playerRecordModal" style="display:none;">
+            <div class="modal-content record-modal-content">
+                <div class="modal-header">
+                    <div class="record-modal-badge">⚡ OFFICIAL SPEED SUBMISSION</div>
+                    <h3>SUBMIT / UPDATE YOUR RECORD</h3>
+                    <button class="modal-close" id="closeRecordModalBtn">&times;</button>
+                </div>
+
+                <p class="modal-intro">
+                    Logged in as <strong id="modalLoggedUser" class="red-text">Player</strong>. Enter your latest Spike Cross speed record and proof link.
+                </p>
+
+                <form id="recordSubmitForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recordSpeed">SPIKE SPEED (KM/H) *</label>
+                            <input type="number" id="recordSpeed" required min="50" max="250" placeholder="e.g. 196">
+                            <span class="form-hint">Must match your verified video screenshot / clip</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recordCharacter">CHARACTER USED *</label>
+                            <select id="recordCharacter" required>
+                                <option value="BLACK THUNDER NISHIKAWA">BLACK THUNDER NISHIKAWA</option>
+                                <option value="NISHIKAWA">NISHIKAWA</option>
+                                <option value="HEESEONG">HEESEONG</option>
+                                <option value="JAEHYUN">JAEHYUN</option>
+                                <option value="YOUNGSUP">YOUNGSUP</option>
+                                <option value="RAUL">RAUL</option>
+                                <option value="LUCAS">LUCAS</option>
+                                <option value="DAVE">DAVE</option>
+                                <option value="RYUHYEON">RYUHYEON</option>
+                                <option value="JENNY">JENNY</option>
+                                <option value="SARA">SARA</option>
+                                <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recordSetup">SETUP &amp; STATS</label>
+                            <input type="text" id="recordSetup" placeholder="e.g. Power 120 / Jump 120">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recordState">STATE / SERVER ZONE</label>
+                            <input type="text" id="recordState" placeholder="e.g. Karnataka">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recordCity">CITY</label>
+                        <input type="text" id="recordCity" placeholder="e.g. Bengaluru">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recordProof">VIDEO PROOF LINK (YOUTUBE / DRIVE / STREAMABLE) *</label>
+                        <input type="text" id="recordProof" required placeholder="https://youtube.com/shorts/... or https://youtu.be/...">
+                        <!-- Live Link Inspector Feedback -->
+                        <div id="proofInspectStatus" class="proof-feedback-box" style="display:none;"></div>
+                        <span class="form-hint">Our automated link inspector checks against fake or broken URLs.</span>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="action-btn secondary-btn" id="cancelRecordModalBtn">Cancel</button>
+                        <button type="submit" class="action-btn primary-btn" id="submitRecordBtn">
+                            <span>🚀</span> SUBMIT RECORD TO FIREBASE
+                        </button>
+                    </div>
+                </form>
             </div>
-            <p class="footer-tagline">THE SPIKE CROSS · INDIA'S SPEED CHALLENGE</p>
-            <p class="footer-copy">© 2024 The Spike India. Unofficial community leaderboard.</p>
-        </footer>
+        </div>
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast" class="admin-toast"></div>
 
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

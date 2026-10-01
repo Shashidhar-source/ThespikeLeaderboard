@@ -1,6 +1,17 @@
 /* ============================================================
    THE SPIKE INDIA — admin.js
+   Firebase Firestore Admin Controller & Proof Link Inspector
    ============================================================ */
+
+import { 
+    db, 
+    collection, 
+    doc, 
+    setDoc, 
+    deleteDoc, 
+    getDocs, 
+    inspectProofLink 
+} from "./firebase-config.js";
 
 const STORAGE_KEY       = 'spike-india-players';
 const ADMIN_SESSION_KEY = 'spike-admin-authenticated';
@@ -24,18 +35,18 @@ const CHARACTER_FILES = [
 
 // ── DEFAULT PLAYERS BACKUP ──────────────────────────────────
 const DEFAULT_PLAYERS = [
-  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"#" },
-  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"#" },
-  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"#" },
-  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"#" },
-  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"#" },
-  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"#" },
-  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"#" },
-  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"#" },
-  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"#" },
-  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"#" },
-  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"#" },
-  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"#" },
+  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"https://youtube.com/shorts/sample1" },
+  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"https://youtube.com/shorts/sample2" },
+  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"https://youtube.com/shorts/sample3" },
+  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"https://youtube.com/shorts/sample4" },
+  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"https://youtube.com/shorts/sample5" },
+  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"https://youtube.com/shorts/sample6" },
+  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"https://youtube.com/shorts/sample7" },
+  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"https://youtube.com/shorts/sample8" },
+  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"https://youtube.com/shorts/sample9" },
+  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"https://youtube.com/shorts/sample10" },
+  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"https://youtube.com/shorts/sample11" },
+  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"https://youtube.com/shorts/sample12" },
   { tag:"ZenitsuPlayz",      speed:178, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 116 / Jump 118", state:"Kerala",         city:"Kochi",       proof:"#" },
   { tag:"RoyalSpiker",       speed:176, character:"NISHIKAWA",                            setup:"Power 115 / Jump 116", state:"Punjab",         city:"Chandigarh",  proof:"#" },
   { tag:"SpikeStorm",        speed:175, character:"HEESEONG",                             setup:"Power 116 / Jump 116", state:"Bihar",          city:"Patna",       proof:"#" },
@@ -155,30 +166,70 @@ logoutBtn?.addEventListener('click', () => {
     showToast('Admin session locked.');
 });
 
-// ── DATA MANAGEMENT ─────────────────────────────────────────
-function loadData() {
+// ── DATA MANAGEMENT (FIREBASE + LOCAL SYNC) ─────────────────
+async function initAdminData() {
+    showToast('Connecting to Firebase Firestore...', '');
+    try {
+        const snap = await getDocs(collection(db, "players"));
+        if (!snap.empty) {
+            const list = [];
+            snap.forEach(d => list.push(d.data()));
+            players = list.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+            renderAll();
+            showToast('Loaded real-time players from Firebase!', 'success');
+            return;
+        }
+    } catch (e) {
+        console.warn('Firebase admin load note:', e);
+    }
+
+    // Local fallback
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length) return parsed;
+            players = JSON.parse(raw);
+            players.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
+            renderAll();
+            return;
         }
     } catch (e) {}
-    return JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+
+    players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+    players.sort((a, b) => b.speed - a.speed);
+    renderAll();
+}
+
+async function savePlayerDataToFirebase(player) {
+    try {
+        await setDoc(doc(db, "players", player.tag.toUpperCase()), {
+            ...player,
+            updatedAt: new Date().toISOString()
+        });
+    } catch (e) {
+        console.warn('Firebase save player note:', e);
+    }
+}
+
+async function deletePlayerFromFirebase(tag) {
+    try {
+        await deleteDoc(doc(db, "players", tag.toUpperCase()));
+    } catch (e) {
+        console.warn('Firebase delete player note:', e);
+    }
 }
 
 function saveData(dataToSave) {
-    dataToSave.sort((a, b) => b.speed - a.speed);
+    dataToSave.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     players = dataToSave;
     renderAll();
-    showToast('Changes saved and synced to public leaderboard!', 'success');
-}
 
-function initAdminData() {
-    players = loadData();
-    players.sort((a, b) => b.speed - a.speed);
-    renderAll();
+    // Sync all to Firebase in the background
+    for (const p of dataToSave) {
+        savePlayerDataToFirebase(p);
+    }
+    showToast('Changes saved to Firebase Cloud & synced!', 'success');
 }
 
 // ── STATS COMPUTATION ───────────────────────────────────────
@@ -200,15 +251,13 @@ function updateStats() {
     if (statRunnerPlayer) statRunnerPlayer.textContent = p2 ? `⚡ #2 ${p2.tag}` : 'No Runner Up';
 }
 
-// ── IMAGE HELPER: CHARACTER IMAGE MATCHING ──────────────────
+// ── IMAGE HELPER ────────────────────────────────────────────
 function resolveCharacterInfo(charName, playerName) {
     const normChar = (charName || '').trim().toUpperCase();
     const normPlayer = (playerName || '').trim();
 
-    // 1. Direct match with character files list
     let matchedName = CHARACTER_FILES.find(f => f.toUpperCase() === normChar);
 
-    // 2. Friendly alias/partial match
     if (!matchedName && normChar) {
         if (normChar.includes('HEES')) matchedName = 'HEESEONG';
         else if (normChar.includes('BLACK') || normChar.includes('THUNDER')) matchedName = 'BLACK THUNDER NISHIKAWA';
@@ -244,12 +293,27 @@ function getPlayerAvatarCellHtml(player) {
     return `
         <div class="admin-avatar-cell" title="${player.character || tag}">
             <img src="${info.pngSrc || info.playerPng || info.jpgSrc}" alt="${player.character || tag}"
+                 style="width:100%;height:100%;object-fit:contain;"
                  data-jpg="${info.jpgSrc || info.playerJpg}"
                  data-player="${info.playerPng}"
                  onerror="if(!this.dataset.triedJpg && this.dataset.jpg){this.dataset.triedJpg='1';this.src=this.dataset.jpg;}else if(!this.dataset.triedPlayer && this.dataset.player){this.dataset.triedPlayer='1';this.src=this.dataset.player;}else{this.style.display='none';this.nextElementSibling.style.display='block';}">
             <span class="admin-avatar-fallback" style="display:none;">${initial}</span>
         </div>
     `;
+}
+
+function renderProofLinkStatus(url) {
+    const check = inspectProofLink(url);
+    if (!check.isValid || check.status === 'missing') {
+        return `<span style="color:var(--text-muted);font-size:11px;">None</span>`;
+    }
+    if (check.isFake) {
+        return `<a href="${url}" target="_blank" style="color:#ff5555;font-weight:700;" title="${check.message}">❌ Fake/Bad Link</a>`;
+    }
+    if (check.status === 'verified') {
+        return `<a href="${url}" target="_blank" style="color:#00e676;font-weight:700;" title="${check.platform} Verified">✓ ${check.platform}</a>`;
+    }
+    return `<a href="${url}" target="_blank" style="color:var(--accent-red);font-weight:700;">▶ Link</a>`;
 }
 
 // ── RENDER ADMIN TABLE ──────────────────────────────────────
@@ -300,7 +364,7 @@ function renderTable() {
                     <span>🇮🇳 ${p.state}</span>, <small style="color:var(--text-muted);">${p.city}</small>
                 </td>
                 <td>
-                    ${p.proof && p.proof !== '#' ? `<a href="${p.proof}" target="_blank" style="color:var(--accent-red);font-weight:700;">▶ Link</a>` : '<span style="color:var(--text-muted);">None</span>'}
+                    ${renderProofLinkStatus(p.proof)}
                 </td>
                 <td>
                     <div class="row-actions">
@@ -337,11 +401,11 @@ const formSetup           = document.getElementById('formSetup');
 const formState           = document.getElementById('formState');
 const formCity            = document.getElementById('formCity');
 const formProof           = document.getElementById('formProof');
+const adminProofFeedback  = document.getElementById('adminProofFeedback');
 const expectedImgTxt      = document.getElementById('expectedImageName');
 const modalAvatar         = document.getElementById('modalAvatarPreview');
 const modalImgStatus      = document.getElementById('modalImageStatus');
 
-// Sync dropdown and text input for character
 formCharacterSelect?.addEventListener('change', () => {
     const val = formCharacterSelect.value;
     if (val && val !== 'CUSTOM') {
@@ -363,6 +427,29 @@ formCharacter?.addEventListener('input', () => {
     updateModalImagePreview();
 });
 
+// Proof link inspector in admin modal
+formProof?.addEventListener('input', () => {
+    const val = formProof.value.trim();
+    if (!val || val === '#') {
+        if (adminProofFeedback) adminProofFeedback.style.display = 'none';
+        return;
+    }
+    const check = inspectProofLink(val);
+    if (!adminProofFeedback) return;
+    adminProofFeedback.style.display = 'block';
+
+    if (check.status === 'verified') {
+        adminProofFeedback.className = 'proof-feedback-box valid';
+        adminProofFeedback.innerHTML = `${check.icon} <strong>${check.platform} Verified:</strong> Valid video proof format.`;
+    } else if (check.status === 'fake') {
+        adminProofFeedback.className = 'proof-feedback-box invalid';
+        adminProofFeedback.innerHTML = `❌ <strong>Fake / Suspicious URL:</strong> ${check.message}`;
+    } else if (check.warning) {
+        adminProofFeedback.className = 'proof-feedback-box warning';
+        adminProofFeedback.innerHTML = `⚠️ <strong>Notice:</strong> ${check.message}`;
+    }
+});
+
 function openAddModal() {
     modalTitle.textContent = 'ADD NEW LEADERBOARD PLAYER';
     editIndexInput.value = '-1';
@@ -370,6 +457,7 @@ function openAddModal() {
     formCharacterSelect.value = 'BLACK THUNDER NISHIKAWA';
     formCharacter.value = 'BLACK THUNDER NISHIKAWA';
     formSetup.value = 'Power 120 / Jump 120';
+    if (adminProofFeedback) adminProofFeedback.style.display = 'none';
     updateModalImagePreview();
     playerModal.style.display = 'flex';
     formTag.focus();
@@ -395,6 +483,14 @@ window.openEditModal = function(index) {
     formState.value      = p.state || '';
     formCity.value       = p.city || '';
     formProof.value      = p.proof && p.proof !== '#' ? p.proof : '';
+    
+    // Trigger inspector on existing proof
+    if (formProof.value) {
+        formProof.dispatchEvent(new Event('input'));
+    } else if (adminProofFeedback) {
+        adminProofFeedback.style.display = 'none';
+    }
+
     updateModalImagePreview();
     playerModal.style.display = 'flex';
     formSpeed.focus();
@@ -412,7 +508,6 @@ playerModal?.addEventListener('click', (e) => {
     if (e.target === playerModal) closeModal();
 });
 
-// Update image preview as user selects or types character name or player name
 function updateModalImagePreview() {
     const charName = formCharacter ? formCharacter.value.trim() : '';
     const tag      = formTag ? formTag.value.trim() : '';
@@ -436,7 +531,7 @@ function updateModalImagePreview() {
 
     if (modalImgStatus) {
         if (info.matched) {
-            modalImgStatus.innerHTML = `<span style="color:#00e676;font-weight:700;">✅ Matched image:</span> <code>images/${info.characterName}.png</code> (Transparent background active)`;
+            modalImgStatus.innerHTML = `<span style="color:#00e676;font-weight:700;">✅ Matched:</span> <code>images/${info.characterName}.png</code> (Transparent background active)`;
         } else if (charName) {
             modalImgStatus.innerHTML = `<span style="color:#ffaa00;">Searching for:</span> <code>images/${charName}.png</code> or <code>.jpg</code> in images folder.`;
         } else {
@@ -454,7 +549,7 @@ playerForm?.addEventListener('submit', (e) => {
     const tag       = formTag.value.trim();
     const speed     = parseInt(formSpeed.value);
     const character = formCharacter.value.trim();
-    const setup     = formSetup.value.trim() || 'Default Setup';
+    const setup     = formSetup.value.trim() || 'Power 120 / Jump 120';
     const state     = formState.value.trim();
     const city      = formCity.value.trim();
     const proof     = formProof.value.trim() || '#';
@@ -462,6 +557,16 @@ playerForm?.addEventListener('submit', (e) => {
     if (!tag || isNaN(speed) || !character || !state || !city) {
         showToast('Please fill all required fields.', 'error');
         return;
+    }
+
+    // Inspect proof link
+    if (proof && proof !== '#') {
+        const check = inspectProofLink(proof);
+        if (check.isFake) {
+            if (!confirm(`Warning: The proof link appears to be fake or invalid (${check.message}). Save anyway?`)) {
+                return;
+            }
+        }
     }
 
     const newPlayerData = { tag, speed, character, setup, state, city, proof };
@@ -483,6 +588,7 @@ window.deletePlayer = function(index) {
     const p = players[index];
     if (!p) return;
     if (confirm(`Are you sure you want to remove ${p.tag} (${p.speed} KM/H) from the leaderboard?`)) {
+        deletePlayerFromFirebase(p.tag);
         players.splice(index, 1);
         saveData(players);
         showToast(`Removed ${p.tag}.`);
@@ -491,7 +597,7 @@ window.deletePlayer = function(index) {
 
 // ── RESET TO DEFAULTS ───────────────────────────────────────
 document.getElementById('resetDefaultsBtn')?.addEventListener('click', () => {
-    if (confirm('Are you sure you want to reset all players to the official character roster? Any custom added players will be cleared.')) {
+    if (confirm('Are you sure you want to reset all players to the official character roster? This will sync to Firebase.')) {
         players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
         saveData(players);
         showToast('Reset leaderboard to official character players.', 'success');
@@ -508,7 +614,7 @@ let toastTimer = null;
 function showToast(msg, type = '') {
     const toast = document.getElementById('toast');
     if (!toast) return;
-    toast.textContent = msg;
+    toast.innerHTML = msg;
     toast.className = `admin-toast show ${type}`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
