@@ -40,29 +40,17 @@ const CHARACTER_FILES = [
   "YOUNGSUP"
 ];
 
-// ── DEFAULT PLAYER ROSTER (Fallback & Cloud Seed) ───────────
-const DEFAULT_PLAYERS = [
-  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"https://youtube.com/shorts/sample1" },
-  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"https://youtube.com/shorts/sample2" },
-  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"https://youtube.com/shorts/sample3" },
-  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"https://youtube.com/shorts/sample4" },
-  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"https://youtube.com/shorts/sample5" },
-  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"https://youtube.com/shorts/sample6" },
-  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"https://youtube.com/shorts/sample7" },
-  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"https://youtube.com/shorts/sample8" },
-  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"https://youtube.com/shorts/sample9" },
-  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"https://youtube.com/shorts/sample10" },
-  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"https://youtube.com/shorts/sample11" },
-  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"https://youtube.com/shorts/sample12" },
-  { tag:"ZenitsuPlayz",      speed:178, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 116 / Jump 118", state:"Kerala",         city:"Kochi",       proof:"#" },
-  { tag:"RoyalSpiker",       speed:176, character:"NISHIKAWA",                            setup:"Power 115 / Jump 116", state:"Punjab",         city:"Chandigarh",  proof:"#" },
-  { tag:"SpikeStorm",        speed:175, character:"HEESEONG",                             setup:"Power 116 / Jump 116", state:"Bihar",          city:"Patna",       proof:"#" },
-  { tag:"VoltSpiker",        speed:174, character:"JAEHYUN",                              setup:"Power 114 / Jump 115", state:"Assam",          city:"Guwahati",    proof:"#" },
-  { tag:"InfinityJump",      speed:172, character:"YOUNGSUP",                             setup:"Power 114 / Jump 115", state:"Odisha",         city:"Bhubaneswar", proof:"#" },
-  { tag:"DarkAce",           speed:171, character:"RAUL",                                 setup:"Power 115 / Jump 114", state:"Jharkhand",      city:"Ranchi",      proof:"#" },
-  { tag:"HyperSpike",        speed:170, character:"LUCAS",                                setup:"Power 114 / Jump 114", state:"Chhattisgarh",   city:"Raipur",      proof:"#" },
-  { tag:"NextGenSpike",      speed:168, character:"DAVE",                                 setup:"Power 112 / Jump 115", state:"Haryana",        city:"Gurugram",    proof:"#" },
-];
+// ── MOCK PLAYER PURGE FILTER ─────────────────────────────────
+// Eliminates dummy/seed data so leaderboard remains 100% genuine & empty until real records are submitted
+const MOCK_TAGS = new Set([
+  "SPIKE_MASTER10", "IND_VOLLEYKING", "THUNDERACE", "THESPIKEINDIAYT",
+  "AEROSPIKER", "REDZONE", "VOLLEYBALLGOD", "CROSSACE", "SKYSPIKE",
+  "BLAZEX", "ACEINDIA", "SHADOWSPIKE", "ZENITSUPLAYZ", "ROYALSPIKER",
+  "SPIKESTORM", "VOLTSPIKER", "INFINITYJUMP", "DARKACE", "HYPERSPIKE", "NEXTGENSPIKE"
+]);
+
+// Empty roster by default until players submit real verified records
+const DEFAULT_PLAYERS = [];
 
 let allPlayers = [];
 let srch = '', fChar = '', fState = '';
@@ -195,6 +183,13 @@ function animateGauge(topSpeed) {
     const label  = document.getElementById('gaugeSpeedLabel');
     if (!needle || !arc) return;
 
+    if (!topSpeed || topSpeed <= 0) {
+        needle.style.transform = 'rotate(-90deg)';
+        arc.style.strokeDashoffset = '251';
+        if (label) label.textContent = '--- KM/H';
+        return;
+    }
+
     const ratio         = Math.min(Math.max(topSpeed / SPEED_SCALE_MAX, 0), 1);
     const targetAngle   = -90 + (ratio * 180);   // range: -90° (0 km/h) → +90° (220 km/h)
     const targetOffset  = 251 * (1 - ratio);     // dashoffset: 251 (empty) → 0 (full)
@@ -231,11 +226,11 @@ function animateCounters(players) {
     const counts    = [topSpeed, players.length, numStates];
 
     document.querySelectorAll('.stat-num[data-count]').forEach((el, i) => {
-        const target = counts[i] ?? parseInt(el.dataset.count);
+        const target = counts[i] ?? 0;
         el.dataset.count = target;
         const t0 = performance.now();
         function up(now) {
-            const p = Math.min((now - t0) / 1500, 1);
+            const p = Math.min((now - t0) / 1200, 1);
             el.textContent = Math.floor(easeOut(p) * target);
             if (p < 1) requestAnimationFrame(up); else el.textContent = target;
         }
@@ -267,13 +262,51 @@ function renderPodium(list) {
     const medals = ['🥇', '🥈', '🥉'];
 
     [
-        { id: 'podium2', player: top3[1] || null },  // Left   — Rank 2 RUNNER UP (Silver)
-        { id: 'podium1', player: top3[0] || null },  // Center — Rank 1 CHAMPION (Gold)
-        { id: 'podium3', player: top3[2] || null },  // Right  — Rank 3 (Bronze)
-    ].forEach(({ id, player }) => {
+        { id: 'podium2', rank: 2, player: top3[1] || null },  // Left   — Rank 2 RUNNER UP (Silver)
+        { id: 'podium1', rank: 1, player: top3[0] || null },  // Center — Rank 1 CHAMPION (Gold)
+        { id: 'podium3', rank: 3, player: top3[2] || null },  // Right  — Rank 3 (Bronze)
+    ].forEach(({ id, rank, player }) => {
         const el = document.getElementById(id);
         if (!el) return;
-        if (!player) { el.innerHTML = ''; return; }
+
+        if (!player) {
+            // Elegant empty state awaiting genuine record submission
+            if (rank === 1) {
+                el.innerHTML = `
+                    <div class="podium-rank">#1</div>
+                    <div class="podium-empty-box gold-empty-box">
+                        <div class="empty-podium-crown">👑</div>
+                        <div class="empty-badge-pill gold-badge">#1 INDIA RECORD OPEN</div>
+                        <div class="empty-podium-title">AWAITING FIRST RECORD</div>
+                        <p class="empty-podium-desc">No records submitted yet. Submit your video proof and claim India's #1 title!</p>
+                        <button class="empty-podium-cta" onclick="document.getElementById('heroProfileBtn').click()">
+                            <span>⚡</span> CLAIM #1 RECORD
+                        </button>
+                    </div>
+                `;
+            } else if (rank === 2) {
+                el.innerHTML = `
+                    <div class="podium-rank">#2</div>
+                    <div class="podium-empty-box silver-empty-box">
+                        <div class="empty-podium-medal">🥈</div>
+                        <div class="empty-badge-pill silver-badge">#2 RUNNER UP OPEN</div>
+                        <div class="empty-podium-title">SPOT AVAILABLE</div>
+                        <p class="empty-podium-desc">Waiting for verified submissions</p>
+                    </div>
+                `;
+            } else {
+                el.innerHTML = `
+                    <div class="podium-rank">#3</div>
+                    <div class="podium-empty-box bronze-empty-box">
+                        <div class="empty-podium-medal">🥉</div>
+                        <div class="empty-badge-pill bronze-badge">#3 BRONZE OPEN</div>
+                        <div class="empty-podium-title">SPOT AVAILABLE</div>
+                        <p class="empty-podium-desc">Waiting for verified submissions</p>
+                    </div>
+                `;
+            }
+            return;
+        }
 
         const medal    = medals[player.rank - 1] || '';
         const isGold   = player.rank === 1;
@@ -321,12 +354,29 @@ function renderProofButton(proofUrl) {
 function renderTable(list) {
     const tbody = document.getElementById('leaderboard-tbody');
     const noRes = document.getElementById('noResults');
+    if (!tbody) return;
+
     if (!list.length) {
-        tbody.innerHTML = '';
-        noRes.style.display = 'block';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-table-cell">
+                    <div class="empty-table-state">
+                        <div class="empty-table-icon">🏐</div>
+                        <h4 class="empty-table-title">NO SPEED RECORDS SUBMITTED YET</h4>
+                        <p class="empty-table-desc">
+                            The Spike Cross India speed leaderboard is ready! Be the first player to submit your verified in-game spike record and claim your rank.
+                        </p>
+                        <button class="empty-table-btn" onclick="document.getElementById('heroProfileBtn').click()">
+                            <span>⚡</span> SUBMIT YOUR SPEED RECORD
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        if (noRes) noRes.style.display = 'none';
         return;
     }
-    noRes.style.display = 'none';
+    if (noRes) noRes.style.display = 'none';
 
     tbody.innerHTML = list.map((p, i) => `
         <tr style="animation-delay:${i * 0.03}s">
@@ -361,11 +411,12 @@ function renderTable(list) {
    Detects highest speed and aligns players automatically in rank order */
 function alignAndSortPlayers(rawList) {
     return rawList
-        .filter(p => p && p.tag)
+        .filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()))
         .map(p => ({
             ...p,
             speed: parseInt(p.speed) || 0
         }))
+        .filter(p => p.speed > 0)
         .sort((a, b) => b.speed - a.speed)
         .map((p, i) => ({
             ...p,
@@ -398,19 +449,24 @@ async function initFirebaseLeaderboard() {
 
         // Real-time updates from Firestore
         onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const cloudList = [];
-                snapshot.forEach(docSnap => {
-                    cloudList.push(docSnap.data());
-                });
+            const cleanList = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const tagUpper = (data.tag || '').toUpperCase();
+                // Filter out any mock/seed players
+                if (data && data.tag && !MOCK_TAGS.has(tagUpper)) {
+                    cleanList.push(data);
+                } else if (MOCK_TAGS.has(tagUpper)) {
+                    // Automatically clean out mock player from Firestore if present
+                    try {
+                        deleteDoc(doc(db, "players", docSnap.id));
+                    } catch (e) {}
+                }
+            });
 
-                allPlayers = alignAndSortPlayers(cloudList);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
-                onPlayersUpdated();
-            } else {
-                // First run: seed Firestore with default player roster
-                seedDefaultPlayersToFirebase();
-            }
+            allPlayers = alignAndSortPlayers(cleanList);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+            onPlayersUpdated();
         }, (error) => {
             console.warn("Firestore onSnapshot note (using local cache):", error);
             loadLocalFallback();
@@ -421,42 +477,32 @@ async function initFirebaseLeaderboard() {
     }
 }
 
-async function seedDefaultPlayersToFirebase() {
-    console.log("Seeding initial players to Firebase Firestore...");
-    allPlayers = alignAndSortPlayers(DEFAULT_PLAYERS);
-    onPlayersUpdated();
-
-    for (const p of DEFAULT_PLAYERS) {
-        try {
-            await setDoc(doc(db, "players", p.tag.toUpperCase()), {
-                ...p,
-                updatedAt: new Date().toISOString()
-            });
-        } catch (e) {}
-    }
-}
-
 function loadLocalFallback() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed) && parsed.length) {
-                allPlayers = alignAndSortPlayers(parsed);
+                const clean = parsed.filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()));
+                allPlayers = alignAndSortPlayers(clean);
                 onPlayersUpdated();
                 return;
             }
         }
     } catch (e) {}
-    allPlayers = alignAndSortPlayers(DEFAULT_PLAYERS);
+    allPlayers = [];
     onPlayersUpdated();
 }
 
 function onPlayersUpdated() {
-    const top = allPlayers[0]?.speed || 198;
+    const top = allPlayers[0]?.speed || 0;
     animateGauge(top);
     animateCounters(allPlayers);
     populateFilters(allPlayers);
+
+    const countHeader = document.getElementById('playerCountHeader');
+    if (countHeader) countHeader.textContent = allPlayers.length;
+
     updateAll();
 }
 

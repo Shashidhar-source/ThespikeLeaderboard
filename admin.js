@@ -33,29 +33,15 @@ const CHARACTER_FILES = [
   "YOUNGSUP"
 ];
 
-// ── DEFAULT PLAYERS BACKUP ──────────────────────────────────
-const DEFAULT_PLAYERS = [
-  { tag:"SPIKE_MASTER10",    speed:198, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bagalkot",    proof:"https://youtube.com/shorts/sample1" },
-  { tag:"IND_VolleyKing",    speed:195, character:"NISHIKAWA",                            setup:"Power 120 / Jump 115", state:"Tamil Nadu",     city:"Chennai",     proof:"https://youtube.com/shorts/sample2" },
-  { tag:"ThunderAce",        speed:193, character:"HEESEONG",                             setup:"Power 120 / Jump 120", state:"Maharashtra",    city:"Mumbai",      proof:"https://youtube.com/shorts/sample3" },
-  { tag:"TheSpikeIndiaYT",   speed:191, character:"JAEHYUN",                              setup:"Power 120 / Jump 120", state:"Karnataka",      city:"Bengaluru",   proof:"https://youtube.com/shorts/sample4" },
-  { tag:"AeroSpiker",        speed:189, character:"YOUNGSUP",                             setup:"Power 120 / Jump 118", state:"Uttar Pradesh",  city:"Lucknow",     proof:"https://youtube.com/shorts/sample5" },
-  { tag:"RedZone",           speed:188, character:"RAUL",                                 setup:"Power 118 / Jump 120", state:"Delhi",          city:"New Delhi",   proof:"https://youtube.com/shorts/sample6" },
-  { tag:"VolleyballGod",     speed:186, character:"LUCAS",                                setup:"Power 120 / Jump 115", state:"Maharashtra",    city:"Pune",        proof:"https://youtube.com/shorts/sample7" },
-  { tag:"CrossAce",          speed:185, character:"DAVE",                                 setup:"Power 118 / Jump 118", state:"Telangana",      city:"Hyderabad",   proof:"https://youtube.com/shorts/sample8" },
-  { tag:"SkySpike",          speed:183, character:"RYUHYEON",                             setup:"Power 118 / Jump 118", state:"Gujarat",        city:"Ahmedabad",   proof:"https://youtube.com/shorts/sample9" },
-  { tag:"BlazeX",            speed:182, character:"JENNY",                                setup:"Power 118 / Jump 116", state:"Rajasthan",      city:"Jaipur",      proof:"https://youtube.com/shorts/sample10" },
-  { tag:"AceIndia",          speed:181, character:"SARA",                                 setup:"Power 116 / Jump 118", state:"West Bengal",    city:"Kolkata",     proof:"https://youtube.com/shorts/sample11" },
-  { tag:"ShadowSpike",       speed:180, character:"NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",setup:"Power 118 / Jump 115", state:"Madhya Pradesh", city:"Indore",      proof:"https://youtube.com/shorts/sample12" },
-  { tag:"ZenitsuPlayz",      speed:178, character:"BLACK THUNDER NISHIKAWA",              setup:"Power 116 / Jump 118", state:"Kerala",         city:"Kochi",       proof:"#" },
-  { tag:"RoyalSpiker",       speed:176, character:"NISHIKAWA",                            setup:"Power 115 / Jump 116", state:"Punjab",         city:"Chandigarh",  proof:"#" },
-  { tag:"SpikeStorm",        speed:175, character:"HEESEONG",                             setup:"Power 116 / Jump 116", state:"Bihar",          city:"Patna",       proof:"#" },
-  { tag:"VoltSpiker",        speed:174, character:"JAEHYUN",                              setup:"Power 114 / Jump 115", state:"Assam",          city:"Guwahati",    proof:"#" },
-  { tag:"InfinityJump",      speed:172, character:"YOUNGSUP",                             setup:"Power 114 / Jump 115", state:"Odisha",         city:"Bhubaneswar", proof:"#" },
-  { tag:"DarkAce",           speed:171, character:"RAUL",                                 setup:"Power 115 / Jump 114", state:"Jharkhand",      city:"Ranchi",      proof:"#" },
-  { tag:"HyperSpike",        speed:170, character:"LUCAS",                                setup:"Power 114 / Jump 114", state:"Chhattisgarh",   city:"Raipur",      proof:"#" },
-  { tag:"NextGenSpike",      speed:168, character:"DAVE",                                 setup:"Power 112 / Jump 115", state:"Haryana",        city:"Gurugram",    proof:"#" },
-];
+// ── MOCK PLAYER PURGE FILTER ─────────────────────────────────
+const MOCK_TAGS = new Set([
+  "SPIKE_MASTER10", "IND_VOLLEYKING", "THUNDERACE", "THESPIKEINDIAYT",
+  "AEROSPIKER", "REDZONE", "VOLLEYBALLGOD", "CROSSACE", "SKYSPIKE",
+  "BLAZEX", "ACEINDIA", "SHADOWSPIKE", "ZENITSUPLAYZ", "ROYALSPIKER",
+  "SPIKESTORM", "VOLTSPIKER", "INFINITYJUMP", "DARKACE", "HYPERSPIKE", "NEXTGENSPIKE"
+]);
+
+const DEFAULT_PLAYERS = [];
 
 let players = [];
 let searchQuery = '';
@@ -171,15 +157,23 @@ async function initAdminData() {
     showToast('Connecting to Firebase Firestore...', '');
     try {
         const snap = await getDocs(collection(db, "players"));
-        if (!snap.empty) {
-            const list = [];
-            snap.forEach(d => list.push(d.data()));
-            players = list.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-            renderAll();
-            showToast('Loaded real-time players from Firebase!', 'success');
-            return;
-        }
+        const list = [];
+        snap.forEach(d => {
+            const data = d.data();
+            const tagUpper = (data.tag || '').toUpperCase();
+            if (data && data.tag && !MOCK_TAGS.has(tagUpper)) {
+                list.push(data);
+            } else if (MOCK_TAGS.has(tagUpper)) {
+                try {
+                    deleteDoc(doc(db, "players", d.id));
+                } catch (e) {}
+            }
+        });
+        players = list.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+        renderAll();
+        showToast(players.length ? 'Loaded records from Firebase!' : 'Leaderboard is empty. Awaiting real submissions.', 'success');
+        return;
     } catch (e) {
         console.warn('Firebase admin load note:', e);
     }
@@ -188,15 +182,17 @@ async function initAdminData() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-            players = JSON.parse(raw);
-            players.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
-            renderAll();
-            return;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                players = parsed.filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()));
+                players.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
+                renderAll();
+                return;
+            }
         }
     } catch (e) {}
 
-    players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
-    players.sort((a, b) => b.speed - a.speed);
+    players = [];
     renderAll();
 }
 

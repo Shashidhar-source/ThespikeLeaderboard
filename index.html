@@ -36,6 +36,30 @@
                     <a href="#about-section">About</a>
                     <a href="admin.html" class="admin-link">⚙ Admin</a>
                 </nav>
+
+                <!-- OFFICIAL SOCIAL LINKS -->
+                <div class="header-social-group">
+                    <a href="https://youtube.com/@thespikeindia-m9i?si=uOOqXTk3eM09D4wa" target="_blank" rel="noopener" class="header-social-btn yt-btn" title="Subscribe to The Spike India YouTube Channel">
+                        <img src="images/yt_channel_logo.jpg" alt="The Spike India YouTube" class="header-yt-avatar">
+                        <span class="header-social-text">YouTube</span>
+                    </a>
+                    <a href="https://www.instagram.com/thespikeindia/" target="_blank" rel="noopener" class="header-social-btn ig-btn" title="Follow @thespikeindia on Instagram">
+                        <svg class="header-ig-svg" viewBox="0 0 24 24" width="16" height="16">
+                            <defs>
+                                <radialGradient id="igGradHead" cx="20%" cy="110%" r="130%">
+                                    <stop offset="0%" stop-color="#fdf497"/>
+                                    <stop offset="5%" stop-color="#fdf497"/>
+                                    <stop offset="45%" stop-color="#fd5949"/>
+                                    <stop offset="60%" stop-color="#d6249f"/>
+                                    <stop offset="90%" stop-color="#285AEB"/>
+                                </radialGradient>
+                            </defs>
+                            <path fill="url(#igGradHead)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                        <span class="header-social-text">Instagram</span>
+                    </a>
+                </div>
+
                 <div class="header-user-area">
                     <span id="userNavSlot"><a href="login.html" class="nav-login-btn">⚡ Profile / Login</a></span>
                     <div class="game-badge">THE SPIKE CROSS</div>
@@ -50,14 +74,14 @@
                     <svg viewBox="0 0 200 120" class="gauge-svg">
                         <!-- Gauge arc -->
                         <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" stroke-linecap="round"/>
-                        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="60" class="gauge-arc-fill"/>
+                        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" class="gauge-arc-fill"/>
                         <!-- Tick marks -->
                         <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(-90, 100, 110)"/>
                         <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(-45, 100, 110)"/>
                         <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(0, 100, 110)"/>
                         <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(45, 100, 110)"/>
                         <!-- Needle -->
-                        <line x1="100" y1="110" x2="100" y2="38" stroke="white" stroke-width="3" stroke-linecap="round" class="gauge-needle" id="gaugeNeedle"/>
+                        <line x1="100" y1="110" x2="100" y2="38" stroke="white" stroke-width="3" stroke-linecap="round" class="gauge-needle" id="gaugeNeedle" style="transform: rotate(-90deg);"/>
                         <circle cx="100" cy="110" r="8" fill="#ff1515"/>
                         <circle cx="100" cy="110" r="4" fill="white"/>
                         <!-- Speed readout -->
@@ -89,6 +113,31 @@
                     <div class="tricolor-bar"></div>
                     <p class="hero-tagline">INDIA'S OFFICIAL SPIKE CROSS SPEED LEADERBOARD</p>
                     
+                    <!-- OFFICIAL COMMUNITY CHANNELS -->
+                    <div class="hero-social-strip">
+                        <span class="social-strip-label">OFFICIAL SPIKE INDIA CHANNELS:</span>
+                        <div class="social-pills-row">
+                            <a href="https://youtube.com/@thespikeindia-m9i?si=uOOqXTk3eM09D4wa" target="_blank" rel="noopener" class="hero-social-pill yt-pill" title="Subscribe to The Spike India on YouTube">
+                                <img src="images/yt_channel_logo.jpg" alt="YouTube Channel Logo" class="pill-avatar">
+                                <div class="pill-info">
+                                    <span class="pill-name">The Spike India</span>
+                                    <span class="pill-action">SUBSCRIBE ▶</span>
+                                </div>
+                            </a>
+                            <a href="https://www.instagram.com/thespikeindia/" target="_blank" rel="noopener" class="hero-social-pill ig-pill" title="Follow @thespikeindia on Instagram">
+                                <div class="ig-symbol-box">
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="#ffffff" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                    </svg>
+                                </div>
+                                <div class="pill-info">
+                                    <span class="pill-name">@thespikeindia</span>
+                                    <span class="pill-action">FOLLOW ON IG</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- HERO ACTION CTA BUTTONS -->
                     <div class="hero-cta-wrapper">
                         <button class="hero-main-btn" id="heroProfileBtn">
@@ -104,19 +153,19 @@
                 <!-- Speed stats strip -->
                 <div class="stats-strip">
                     <div class="stat-item">
-                        <span class="stat-num" data-count="198">0</span>
+                        <span class="stat-num" data-count="0">0</span>
                         <span class="stat-unit">KM/H</span>
                         <span class="stat-label">TOP SPEED</span>
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-item">
-                        <span class="stat-num" data-count="20">0</span>
+                        <span class="stat-num" data-count="0">0</span>
                         <span class="stat-unit">+</span>
                         <span class="stat-label">PLAYERS</span>
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-item">
-                        <span class="stat-num" data-count="15">0</span>
+                        <span class="stat-num" data-count="0">0</span>
                         <span class="stat-unit">+</span>
                         <span class="stat-label">STATES</span>
                     </div>
@@ -143,7 +192,7 @@
                 </div>
                 <div class="section-header-right">
                     <div class="player-count">
-                        <span class="count-num">20</span>
+                        <span class="count-num" id="playerCountHeader">0</span>
                         <span class="count-label">PLAYERS</span>
                     </div>
                 </div>
@@ -259,6 +308,44 @@
                 </div>
             </div>
         </section>
+
+        <!-- SITE FOOTER WITH OFFICIAL CHANNELS -->
+        <footer class="site-footer">
+            <div class="footer-inner">
+                <div class="footer-top">
+                    <div class="footer-brand">
+                        <div class="footer-logo">THE <span class="red-text">SPIKE</span> INDIA</div>
+                        <p class="footer-tagline">India's Official Spike Cross Speed &amp; Skill Leaderboard Portal</p>
+                    </div>
+                    <div class="footer-social-box">
+                        <span class="footer-social-heading">OFFICIAL CHANNELS &amp; COMMUNITY</span>
+                        <div class="footer-social-links">
+                            <a href="https://youtube.com/@thespikeindia-m9i?si=uOOqXTk3eM09D4wa" target="_blank" rel="noopener" class="footer-social-btn yt-footer-btn" title="The Spike India YouTube Channel">
+                                <img src="images/yt_channel_logo.jpg" alt="YouTube Channel Logo" class="footer-yt-avatar">
+                                <div class="footer-btn-info">
+                                    <span class="footer-btn-title">The Spike India</span>
+                                    <span class="footer-btn-sub">SUBSCRIBE ON YOUTUBE ▶</span>
+                                </div>
+                            </a>
+                            <a href="https://www.instagram.com/thespikeindia/" target="_blank" rel="noopener" class="footer-social-btn ig-footer-btn" title="@thespikeindia Instagram">
+                                <div class="footer-ig-icon-box">
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="#ffffff" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                    </svg>
+                                </div>
+                                <div class="footer-btn-info">
+                                    <span class="footer-btn-title">@thespikeindia</span>
+                                    <span class="footer-btn-sub">FOLLOW ON INSTAGRAM</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>© 2026 THE SPIKE INDIA · Official competitive speed leaderboard for Indian Spike Cross players.</p>
+                </div>
+            </div>
+        </footer>
 
         <!-- MODAL: PLAYER PROFILE & RECORD SUBMISSION -->
         <div class="modal-backdrop" id="playerRecordModal" style="display:none;">
