@@ -20,7 +20,7 @@ import {
 } from "./firebase-config.js";
 
 
-const SPEED_SCALE_MAX = 220; // Gauge full-scale reference (0 to 220 km/h)
+const SPEED_SCALE_MAX = 1000; // Gauge full-scale reference (0 to 1000 km/h)
 const STORAGE_KEY     = 'spike-india-players';
 const CURRENT_USER_KEY= 'spike-current-user';
 
@@ -193,7 +193,7 @@ function animateGauge(topSpeed) {
     }
 
     const ratio         = Math.min(Math.max(topSpeed / SPEED_SCALE_MAX, 0), 1);
-    const targetAngle   = -90 + (ratio * 180);   // range: -90° (0 km/h) → +90° (220 km/h)
+    const targetAngle   = -90 + (ratio * 180);   // range: -90° (0 km/h) → +90° (1000 km/h)
     const targetOffset  = 251 * (1 - ratio);     // dashoffset: 251 (empty) → 0 (full)
 
     const dur = 2000, t0 = performance.now();
