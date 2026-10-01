@@ -464,6 +464,8 @@ function onPlayersUpdated() {
 const recordModal      = document.getElementById('playerRecordModal');
 const recordForm       = document.getElementById('recordSubmitForm');
 const modalLoggedUser  = document.getElementById('modalLoggedUser');
+const recordIgnInput   = document.getElementById('recordIgn');
+const recordUidInput   = document.getElementById('recordUid');
 const recordSpeedInput = document.getElementById('recordSpeed');
 const recordCharInput  = document.getElementById('recordCharacter');
 const recordSetupInput = document.getElementById('recordSetup');
@@ -471,6 +473,26 @@ const recordStateInput = document.getElementById('recordState');
 const recordCityInput  = document.getElementById('recordCity');
 const recordProofInput = document.getElementById('recordProof');
 const inspectFeedback  = document.getElementById('proofInspectStatus');
+const profileAvatarPreview = document.getElementById('profileAvatarPreview');
+const profileAvatarName    = document.getElementById('profileAvatarName');
+const profileAvatarStatus  = document.getElementById('profileAvatarStatus');
+
+function updateProfileAvatarPreview(charName, ign) {
+    if (!profileAvatarPreview) return;
+    const info = resolveCharacterImageInfo(charName, ign);
+    if (profileAvatarName) profileAvatarName.textContent = info.name || 'Character Avatar';
+    if (info.pngSrc) {
+        profileAvatarPreview.innerHTML = `<img src="${info.pngSrc}" alt="${info.name}" style="width:100%;height:100%;object-fit:contain;" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🏐</span>'">`;
+        if (profileAvatarStatus) profileAvatarStatus.textContent = 'Background-removed character image ready';
+    } else {
+        profileAvatarPreview.innerHTML = '<span>🏐</span>';
+        if (profileAvatarStatus) profileAvatarStatus.textContent = 'Default avatar';
+    }
+}
+
+recordCharInput?.addEventListener('change', () => {
+    updateProfileAvatarPreview(recordCharInput.value, recordIgnInput?.value);
+});
 
 function checkUserSession() {
     try {
@@ -484,10 +506,10 @@ function checkUserSession() {
                 <div class="user-session-bar">
                     <div class="logged-in-badge">
                         <span class="user-ball">🏐</span>
-                        <span class="user-ign">${user.ign}</span>
+                        <span class="user-ign">${user.ign || 'Player'}</span>
                     </div>
                     <button class="action-btn record-nav-btn" id="openRecordModalNavBtn">
-                        ⚡ Submit / Update Record
+                        👤 Profile &amp; Submit Details
                     </button>
                     <button class="logout-btn" id="logoutBtn" title="Log out">✕</button>
                 </div>
@@ -506,7 +528,7 @@ function checkUserSession() {
                 showToast('Logged out of Spike Cross account.');
             });
         } else {
-            navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login / Register</a>`;
+            navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login / Sign In</a>`;
         }
     } catch (e) {}
 }
@@ -514,7 +536,6 @@ function checkUserSession() {
 // Sync Firebase Auth state changes
 onAuthStateChanged(auth, (user) => {
     if (!user) {
-        // If not logged into Firebase Auth and was using Firebase session, clean up
         const raw = localStorage.getItem(CURRENT_USER_KEY);
         if (raw) {
             const parsed = JSON.parse(raw);
@@ -528,24 +549,26 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-
 function openRecordSubmissionModal(user) {
     if (!recordModal) return;
-    if (modalLoggedUser) modalLoggedUser.textContent = user.ign;
+    if (modalLoggedUser) modalLoggedUser.textContent = user.ign || 'Player';
 
     // Prefill existing player record if available
-    const existing = allPlayers.find(p => p.tag.toLowerCase() === user.ign.toLowerCase());
+    const existing = allPlayers.find(p => p.tag.toLowerCase() === (user.ign || '').toLowerCase());
 
-    recordSpeedInput.value = existing ? existing.speed : (user.speed || '');
-    recordCharInput.value  = existing ? existing.character : (user.character || 'BLACK THUNDER NISHIKAWA');
-    recordSetupInput.value = existing ? existing.setup : 'Power 120 / Jump 120';
-    recordStateInput.value = existing ? existing.state : (user.region || '');
-    recordCityInput.value  = existing ? existing.city : '';
-    recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (user.proof && user.proof !== '#' ? user.proof : '');
+    if (recordIgnInput)   recordIgnInput.value   = user.ign || (existing ? existing.tag : '');
+    if (recordUidInput)   recordUidInput.value   = user.uid || (existing ? existing.uid : '');
+    if (recordCharInput)  recordCharInput.value  = existing ? existing.character : (user.character || 'BLACK THUNDER NISHIKAWA');
+    if (recordSpeedInput) recordSpeedInput.value = existing ? existing.speed : (user.speed || '');
+    if (recordSetupInput) recordSetupInput.value = existing ? existing.setup : (user.setup || 'Power 120 / Jump 120');
+    if (recordStateInput) recordStateInput.value = existing ? existing.state : (user.state || user.region || '');
+    if (recordCityInput)  recordCityInput.value  = existing ? existing.city : (user.city || '');
+    if (recordProofInput) recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (user.proof && user.proof !== '#' ? user.proof : '');
 
-    triggerLinkInspection(recordProofInput.value);
+    updateProfileAvatarPreview(recordCharInput?.value, recordIgnInput?.value);
+    triggerLinkInspection(recordProofInput?.value || '');
     recordModal.style.display = 'flex';
-    recordSpeedInput.focus();
+    recordSpeedInput?.focus();
 }
 
 function closeRecordModal() {
@@ -592,79 +615,113 @@ recordForm?.addEventListener('submit', async (e) => {
 
     const rawUser = localStorage.getItem(CURRENT_USER_KEY);
     if (!rawUser) {
-        alert('Please log in with your Spike Cross account to submit a record.');
+        alert('Please log in with your Spike Cross account to submit details.');
         return;
     }
     const user = JSON.parse(rawUser);
 
-    const speed     = parseInt(recordSpeedInput.value);
+    const ign       = recordIgnInput ? recordIgnInput.value.trim() : user.ign;
+    const uid       = recordUidInput ? recordUidInput.value.trim() : (user.uid || '');
+    const speed     = parseInt(recordSpeedInput.value) || 0;
     const character = recordCharInput.value;
     const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
     const state     = recordStateInput.value.trim() || 'India';
     const city      = recordCityInput.value.trim() || 'India';
     const proof     = recordProofInput.value.trim();
 
-    // Verify proof link
-    const check = inspectProofLink(proof);
-    if (check.isFake) {
-        alert(`❌ Cannot submit fake or invalid proof link: ${check.message}`);
-        recordProofInput.focus();
+    if (!ign || !uid) {
+        alert('Please enter your In-Game Name and Spike Cross UID.');
         return;
+    }
+
+    // Verify proof link if provided
+    if (proof && proof !== '#') {
+        const check = inspectProofLink(proof);
+        if (check.isFake) {
+            alert(`❌ Cannot submit fake or invalid proof link: ${check.message}`);
+            recordProofInput.focus();
+            return;
+        }
     }
 
     const submitBtn = document.getElementById('submitRecordBtn');
     if (submitBtn) submitBtn.disabled = true;
 
     const recordData = {
-        tag: user.ign,
+        tag: ign,
         speed,
         character,
         setup,
         state,
         city,
         proof,
-        uid: user.uid || '',
+        uid,
+        updatedAt: new Date().toISOString()
+    };
+
+    const updatedUser = {
+        ...user,
+        ign,
+        uid,
+        character,
+        speed,
+        setup,
+        state,
+        region: state,
+        city,
+        proof,
         updatedAt: new Date().toISOString()
     };
 
     // 1. Save to Firebase Firestore
     try {
-        await setDoc(doc(db, "players", user.ign.toUpperCase()), recordData);
-        // Also update user profile
-        await setDoc(doc(db, "users", user.ign.toLowerCase()), {
-            ...user,
-            speed,
-            character,
-            proof,
-            updatedAt: new Date().toISOString()
+        const userDocId = user.firebaseUid || ign.toLowerCase();
+        await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
+        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
+            email: user.email || '',
+            ign,
+            uid,
+            firebaseUid: user.firebaseUid || ''
         }, { merge: true });
+
+        // If player has speed record, push to "players" leaderboard collection
+        if (speed > 0) {
+            await setDoc(doc(db, "players", ign.toUpperCase()), recordData);
+        }
     } catch (fbErr) {
-        console.warn('Firebase submission note:', fbErr);
+        console.warn('Firebase profile save note (fallback active):', fbErr);
     }
 
     // 2. Update local state & immediately align list
-    const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === user.ign.toUpperCase());
-    if (existingIdx >= 0) {
-        allPlayers[existingIdx] = recordData;
-    } else {
-        allPlayers.push(recordData);
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+
+    if (speed > 0) {
+        const oldIgn = (user.ign || '').toUpperCase();
+        const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase() || p.tag.toUpperCase() === oldIgn);
+        if (existingIdx >= 0) {
+            allPlayers[existingIdx] = recordData;
+        } else {
+            allPlayers.push(recordData);
+        }
+
+        allPlayers = alignAndSortPlayers(allPlayers);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+        onPlayersUpdated();
     }
 
-    allPlayers = alignAndSortPlayers(allPlayers);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
-    onPlayersUpdated();
-
-    // Find the player's new rank
-    const newRank = allPlayers.findIndex(p => p.tag.toUpperCase() === user.ign.toUpperCase()) + 1;
-
+    checkUserSession();
     closeRecordModal();
     if (submitBtn) submitBtn.disabled = false;
 
-    showToast(`🎉 Record saved! ${user.ign} is now ranked #${newRank} with ${speed} KM/H!`, 'success');
-
-    // Smooth scroll to leaderboard
-    document.getElementById('leaderboard-section')?.scrollIntoView({ behavior: 'smooth' });
+    const newRank = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase()) + 1;
+    if (speed > 0 && newRank > 0) {
+        showToast(`🎉 Profile & Record saved! ${ign} is ranked #${newRank} with ${speed} KM/H!`, 'success');
+        document.getElementById('leaderboard-section')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        showToast(`🎉 Spike Cross profile details updated successfully!`, 'success');
+    }
 });
+
 
 // Toast helper
 let toastTimer = null;

@@ -2051,4 +2051,53 @@ select:-webkit-autofill {
     -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
 }
 
+/* Image Preview Box inside Profile Modal */
+.image-preview-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 14px 0;
+}
+
+[data-theme="light"] .image-preview-box {
+    background: #f8f8f8;
+    border-color: #e0e0e0;
+}
+
+.preview-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,21,21,0.15);
+    border: 2px solid var(--accent-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--accent-red);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.preview-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.preview-info strong {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+    display: block;
+}
+
+
 

@@ -243,29 +243,37 @@
             </div>
         </section>
 
-        <!-- MODAL: PLAYER SUBMIT / UPDATE SPEED RECORD -->
+        <!-- MODAL: PLAYER PROFILE & RECORD SUBMISSION -->
         <div class="modal-backdrop" id="playerRecordModal" style="display:none;">
             <div class="modal-content record-modal-content">
                 <div class="modal-header">
-                    <div class="record-modal-badge">⚡ OFFICIAL SPEED SUBMISSION</div>
-                    <h3>SUBMIT / UPDATE YOUR RECORD</h3>
+                    <div class="record-modal-badge">👤 PLAYER PROFILE &amp; RECORD SUBMISSION</div>
+                    <h3>SPIKE CROSS PLAYER DETAILS</h3>
                     <button class="modal-close" id="closeRecordModalBtn">&times;</button>
                 </div>
 
                 <p class="modal-intro">
-                    Logged in as <strong id="modalLoggedUser" class="red-text">Player</strong>. Enter your latest Spike Cross speed record and proof link.
+                    Configure your Spike Cross profile details. Your speed and proof link will automatically publish and position you on the leaderboard.
                 </p>
 
                 <form id="recordSubmitForm">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="recordSpeed">SPIKE SPEED (KM/H) *</label>
-                            <input type="number" id="recordSpeed" required min="50" max="250" placeholder="e.g. 196">
-                            <span class="form-hint">Must match your verified video screenshot / clip</span>
+                            <label for="recordIgn">SPIKE CROSS IN-GAME NAME (IGN) *</label>
+                            <input type="text" id="recordIgn" required placeholder="e.g. ThunderAce_IN">
+                            <span class="form-hint">Your public player tag on the leaderboard</span>
                         </div>
 
                         <div class="form-group">
-                            <label for="recordCharacter">CHARACTER USED *</label>
+                            <label for="recordUid">SPIKE CROSS UID *</label>
+                            <input type="text" id="recordUid" required placeholder="e.g. SC-849201">
+                            <span class="form-hint">Found under Game Settings ➔ Profile</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recordCharacter">MAIN CHARACTER *</label>
                             <select id="recordCharacter" required>
                                 <option value="BLACK THUNDER NISHIKAWA">BLACK THUNDER NISHIKAWA</option>
                                 <option value="NISHIKAWA">NISHIKAWA</option>
@@ -281,23 +289,59 @@
                                 <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL</option>
                             </select>
                         </div>
+
+                        <div class="form-group">
+                            <label for="recordSpeed">HIGHEST SPIKE SPEED (KM/H) *</label>
+                            <input type="number" id="recordSpeed" required min="50" max="250" placeholder="e.g. 196">
+                            <span class="form-hint">Must match your verified video clip</span>
+                        </div>
+                    </div>
+
+                    <!-- LIVE CHARACTER PREVIEW -->
+                    <div class="image-preview-box">
+                        <div class="preview-avatar" id="profileAvatarPreview">
+                            <span>🏐</span>
+                        </div>
+                        <div class="preview-info">
+                            <strong id="profileAvatarName">BLACK THUNDER NISHIKAWA</strong>
+                            <span id="profileAvatarStatus" style="font-size:12px;color:var(--text-muted);display:block;">Background-removed character image ready</span>
+                        </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="recordSetup">SETUP &amp; STATS</label>
-                            <input type="text" id="recordSetup" placeholder="e.g. Power 120 / Jump 120">
+                            <label for="recordState">STATE / SERVER ZONE *</label>
+                            <select id="recordState" required>
+                                <option value="">Select State</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Tamil Nadu">Tamil Nadu</option>
+                                <option value="Maharashtra">Maharashtra</option>
+                                <option value="Delhi">Delhi</option>
+                                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                <option value="Telangana">Telangana</option>
+                                <option value="Gujarat">Gujarat</option>
+                                <option value="Rajasthan">Rajasthan</option>
+                                <option value="West Bengal">West Bengal</option>
+                                <option value="Kerala">Kerala</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Haryana">Haryana</option>
+                                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                                <option value="Bihar">Bihar</option>
+                                <option value="Odisha">Odisha</option>
+                                <option value="Assam">Assam</option>
+                                <option value="Other">Other India State</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
-                            <label for="recordState">STATE / SERVER ZONE</label>
-                            <input type="text" id="recordState" placeholder="e.g. Karnataka">
+                            <label for="recordCity">CITY *</label>
+                            <input type="text" id="recordCity" required placeholder="e.g. Bengaluru">
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="recordCity">CITY</label>
-                        <input type="text" id="recordCity" placeholder="e.g. Bengaluru">
+                        <label for="recordSetup">TEAM SETUP &amp; STATS</label>
+                        <input type="text" id="recordSetup" placeholder="e.g. Power 120 / Jump 120">
                     </div>
 
                     <div class="form-group">
@@ -311,12 +355,13 @@
                     <div class="modal-actions">
                         <button type="button" class="action-btn secondary-btn" id="cancelRecordModalBtn">Cancel</button>
                         <button type="submit" class="action-btn primary-btn" id="submitRecordBtn">
-                            <span>🚀</span> SUBMIT RECORD TO FIREBASE
+                            <span>💾</span> SAVE PROFILE &amp; LEADERBOARD RECORD
                         </button>
                     </div>
                 </form>
             </div>
         </div>
+
 
         <!-- NOTIFICATION TOAST -->
         <div id="toast" class="admin-toast"></div>

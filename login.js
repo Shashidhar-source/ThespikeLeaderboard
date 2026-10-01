@@ -91,33 +91,6 @@ function drawParticles() {
 }
 if (canvas) drawParticles();
 
-// ── TABS (LOGIN / REGISTER) ─────────────────────────────────
-const tabLogin     = document.getElementById('tabLogin');
-const tabRegister  = document.getElementById('tabRegister');
-const loginForm    = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-const authAlert    = document.getElementById('authAlert');
-
-tabLogin?.addEventListener('click', () => {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    tabLogin.setAttribute('aria-selected', 'true');
-    tabRegister.setAttribute('aria-selected', 'false');
-    loginForm.style.display = 'flex';
-    registerForm.style.display = 'none';
-    clearAlert();
-});
-
-tabRegister?.addEventListener('click', () => {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    tabRegister.setAttribute('aria-selected', 'true');
-    tabLogin.setAttribute('aria-selected', 'false');
-    registerForm.style.display = 'flex';
-    loginForm.style.display = 'none';
-    clearAlert();
-});
-
 // ── PASSWORD VISIBILITY TOGGLE ──────────────────────────────
 document.querySelectorAll('.pwd-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -131,7 +104,10 @@ document.querySelectorAll('.pwd-toggle').forEach(btn => {
     });
 });
 
+
 // ── ALERTS & ERROR TRANSLATION ──────────────────────────────
+const authAlert = document.getElementById('authAlert');
+
 function showAlert(msg, isError = true) {
     if (!authAlert) return;
     let clean = (msg || '').toString()
@@ -189,192 +165,10 @@ function formatAuthError(err) {
     }
 }
 
-
-// ── LIVE PROOF LINK INSPECTION ──────────────────────────────
-const regProofInput    = document.getElementById('regProof');
-const regProofFeedback = document.getElementById('regProofFeedback');
-
-regProofInput?.addEventListener('input', () => {
-    const val = regProofInput.value.trim();
-    if (!val) {
-        regProofFeedback.style.display = 'none';
-        return;
-    }
-
-    const inspection = inspectProofLink(val);
-    regProofFeedback.style.display = 'block';
-
-    if (inspection.status === 'verified') {
-        regProofFeedback.className = 'proof-feedback-box valid';
-        regProofFeedback.innerHTML = `${inspection.icon} <strong>${inspection.platform} Verified:</strong> Genuine video link recognized.`;
-    } else if (inspection.status === 'fake') {
-        regProofFeedback.className = 'proof-feedback-box invalid';
-        regProofFeedback.innerHTML = `❌ <strong>Fake / Invalid Link:</strong> ${inspection.message}`;
-    } else if (inspection.warning) {
-        regProofFeedback.className = 'proof-feedback-box warning';
-        regProofFeedback.innerHTML = `⚠️ <strong>Notice:</strong> ${inspection.message}`;
-    } else {
-        regProofFeedback.style.display = 'none';
-    }
-});
-
-// ── REGISTRATION HANDLER (FIREBASE AUTH + FIRESTORE) ────────
-registerForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearAlert();
-
-    const ign             = document.getElementById('regIgn')?.value.trim();
-    const uid             = document.getElementById('regUid')?.value.trim();
-    const email           = document.getElementById('regEmail')?.value.trim().toLowerCase();
-    const region          = document.getElementById('regRegion')?.value;
-    const character       = document.getElementById('regCharacter')?.value;
-    const speed           = parseInt(document.getElementById('regSpeed')?.value) || 0;
-    const proof           = document.getElementById('regProof')?.value.trim() || '#';
-    const password        = document.getElementById('regPassword')?.value;
-    const confirmPassword = document.getElementById('regConfirmPassword')?.value;
-    const terms           = document.getElementById('termsAgree')?.checked;
-
-    if (!ign || !uid || !email || !region || !character || !password) {
-        showAlert('Please fill in all required fields.');
-        return;
-    }
-
-    if (password.length < 6) {
-        showAlert('Password must be at least 6 characters long.');
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        showAlert('Passwords do not match. Please verify.');
-        return;
-    }
-
-    // Inspect proof link if provided
-    if (proof && proof !== '#') {
-        const check = inspectProofLink(proof);
-        if (check.isFake) {
-            showAlert(`❌ Proof Link Error: ${check.message}`);
-            return;
-        }
-    }
-
-    if (!terms) {
-        showAlert('Please accept the Spike Cross fair play terms.');
-        return;
-    }
-
-    const regBtn = document.getElementById('registerBtn');
-    if (regBtn) regBtn.disabled = true;
-    showAlert('Creating your official Spike Cross account...', false);
-
-
-    let authUser = null;
-
-    try {
-        // 1. Create account in Firebase Authentication
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        authUser = cred.user;
-
-        // Set display name to player IGN
-        try {
-            await updateProfile(authUser, { displayName: ign });
-        } catch (profileErr) {
-            console.warn('Profile name update note:', profileErr);
-        }
-    } catch (authErr) {
-        console.warn('Firebase Auth registration note:', authErr);
-        // If operation not allowed, give clear hint, else show error
-        showAlert(formatAuthError(authErr));
-        if (regBtn) regBtn.disabled = false;
-        return;
-    }
-
-    const userData = {
-        ign,
-        uid,
-        email,
-        region,
-        character,
-        speed: speed || 0,
-        proof,
-        firebaseUid: authUser?.uid || '',
-        registeredAt: new Date().toISOString()
-    };
-
-    // 2. Save Profile in Firestore
-    try {
-        // Store in users collection by Firebase Auth UID
-        if (authUser?.uid) {
-            await setDoc(doc(db, "users", authUser.uid), userData, { merge: true });
-        }
-        // Also map by IGN for quick lookups
-        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-            email,
-            ign,
-            uid,
-            firebaseUid: authUser?.uid || ''
-        }, { merge: true });
-
-        // If a speed record was given, publish to Firestore "players" leaderboard
-        if (speed > 0) {
-            await setDoc(doc(db, "players", ign.toUpperCase()), {
-                tag: ign,
-                speed,
-                character,
-                setup: 'Power 120 / Jump 120',
-                state: region,
-                city: region,
-                proof,
-                uid,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
-        }
-    } catch (dbErr) {
-        console.warn('Firestore database save notice (fallback active):', dbErr);
-    }
-
-    // 3. Save to Local Session
-    try {
-        const sessionData = {
-            ign,
-            uid,
-            email,
-            character,
-            region,
-            speed: speed || 0,
-            proof,
-            firebaseUid: authUser?.uid || '',
-            loggedInAt: Date.now()
-        };
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionData));
-
-        // Sync local cache of users
-        const localUsers = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-        localUsers.push(userData);
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(localUsers));
-
-        if (speed > 0) {
-            const localPlayers = JSON.parse(localStorage.getItem(PLAYERS_STORAGE) || '[]');
-            const idx = localPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase());
-            const pData = { tag: ign, speed, character, setup: 'Power 120 / Jump 120', state: region, city: region, proof };
-            if (idx >= 0) localPlayers[idx] = pData;
-            else localPlayers.push(pData);
-            localPlayers.sort((a, b) => b.speed - a.speed);
-            localStorage.setItem(PLAYERS_STORAGE, JSON.stringify(localPlayers));
-        }
-    } catch (e) {}
-
-    if (regBtn) regBtn.disabled = false;
-    showAlert(`🎉 Spike Cross account "${ign}" registered! Redirecting to leaderboard...`, false);
-
-
-    setTimeout(() => {
-        window.location.href = 'index.html';
-    }, 1200);
-});
-
 // ── LOGIN HANDLER (FIREBASE AUTH EMAIL/PASSWORD) ─────────────
+const loginForm = document.getElementById('loginForm');
 loginForm?.addEventListener('submit', async (e) => {
+
     e.preventDefault();
     clearAlert();
 
