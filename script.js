@@ -43,13 +43,8 @@ const CHARACTER_FILES = [
 ];
 
 // ── MOCK PLAYER PURGE FILTER ─────────────────────────────────
-// Eliminates dummy/seed data so leaderboard remains 100% genuine & empty until real records are submitted
-const MOCK_TAGS = new Set([
-  "SPIKE_MASTER10", "IND_VOLLEYKING", "THUNDERACE", "THESPIKEINDIAYT",
-  "AEROSPIKER", "REDZONE", "VOLLEYBALLGOD", "CROSSACE", "SKYSPIKE",
-  "BLAZEX", "ACEINDIA", "SHADOWSPIKE", "ZENITSUPLAYZ", "ROYALSPIKER",
-  "SPIKESTORM", "VOLTSPIKER", "INFINITYJUMP", "DARKACE", "HYPERSPIKE", "NEXTGENSPIKE"
-]);
+// Kept empty so no player names or genuine records are ever purged
+const MOCK_TAGS = new Set();
 
 // Empty roster by default until players submit real verified records
 const DEFAULT_PLAYERS = [];
@@ -412,15 +407,46 @@ function renderTable(list) {
 
 /* ── AUTOMATIC SPEED ALIGNMENT & SORTING ──────────────────────
    Detects highest speed and aligns players automatically in rank order */
+/* ── AUTOMATIC SPEED ALIGNMENT & SORTING ──────────────────────
+   Detects highest speed and aligns players automatically in rank order */
 function alignAndSortPlayers(rawList) {
-    return rawList
-        .filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()))
-        .map(p => ({
+    if (!Array.isArray(rawList)) return [];
+
+    const tagMap = new Map();
+    rawList.forEach(p => {
+        if (!p || !p.tag) return;
+        const tagKey = p.tag.trim().toUpperCase();
+        if (!tagKey) return;
+        const speed = parseInt(p.speed, 10) || 0;
+        if (speed <= 0) return;
+
+        const normalized = {
             ...p,
-            speed: parseInt(p.speed) || 0
-        }))
-        .filter(p => p.speed > 0)
-        .sort((a, b) => b.speed - a.speed)
+            tag: p.tag.trim(),
+            speed
+        };
+
+        if (!tagMap.has(tagKey)) {
+            tagMap.set(tagKey, normalized);
+        } else {
+            const existing = tagMap.get(tagKey);
+            // If duplicate exists, keep whichever record has the higher speed, or more recent
+            if (speed > existing.speed) {
+                tagMap.set(tagKey, normalized);
+            } else if (speed === existing.speed && p.updatedAt && (!existing.updatedAt || p.updatedAt > existing.updatedAt)) {
+                tagMap.set(tagKey, normalized);
+            }
+        }
+    });
+
+    return Array.from(tagMap.values())
+        // Sort strictly descending: greater speeds first, smaller speeds below
+        .sort((a, b) => {
+            if (b.speed !== a.speed) {
+                return b.speed - a.speed;
+            }
+            return (a.tag || '').localeCompare(b.tag || '');
+        })
         .map((p, i) => ({
             ...p,
             rank: i + 1
@@ -445,13 +471,20 @@ document.getElementById('searchInput')?.addEventListener('input',  e => { srch  
 document.getElementById('charFilter')?.addEventListener('change',  e => { fChar  = e.target.value; updateAll(); });
 document.getElementById('stateFilter')?.addEventListener('change', e => { fState = e.target.value; updateAll(); });
 
-/* ── FIREBASE FIRESTORE REAL-TIME SYNC ──────────────────────── */
+/* ── FIREBASE FIRESTORE & LOCAL STORAGE SYNC ────────────────── */
 function mergeWithLocalPlayers(remoteList) {
     const map = new Map();
+
     // 1. Add all valid remote players
     if (Array.isArray(remoteList)) {
         remoteList.forEach(p => {
-            if (p && p.tag) map.set(p.tag.toUpperCase(), p);
+            if (p && p.tag) {
+                const tagKey = p.tag.trim().toUpperCase();
+                const speed = parseInt(p.speed, 10) || 0;
+                if (speed > 0) {
+                    map.set(tagKey, { ...p, speed });
+                }
+            }
         });
     }
 
@@ -462,31 +495,47 @@ function mergeWithLocalPlayers(remoteList) {
             const parsed = JSON.parse(rawLocal);
             if (Array.isArray(parsed)) {
                 parsed.forEach(p => {
-                    const tagU = (p.tag || '').toUpperCase();
-                    if (tagU && !MOCK_TAGS.has(tagU) && (parseInt(p.speed) || 0) > 0) {
-                        if (!map.has(tagU)) map.set(tagU, p);
+                    if (p && p.tag) {
+                        const tagKey = p.tag.trim().toUpperCase();
+                        const speed = parseInt(p.speed, 10) || 0;
+                        if (speed > 0) {
+                            if (!map.has(tagKey)) {
+                                map.set(tagKey, { ...p, speed });
+                            } else {
+                                // If local speed is greater or equal, preserve the local record
+                                const remoteP = map.get(tagKey);
+                                if (speed >= (remoteP.speed || 0)) {
+                                    map.set(tagKey, { ...p, speed });
+                                }
+                            }
+                        }
                     }
                 });
             }
         }
+
         // Also check if current user has an active speed record
         const rawUser = localStorage.getItem(CURRENT_USER_KEY);
         if (rawUser) {
             const u = JSON.parse(rawUser);
-            if (u && u.ign && (parseInt(u.speed) || 0) > 0) {
-                const uTag = u.ign.toUpperCase();
-                if (!map.has(uTag)) {
-                    map.set(uTag, {
-                        tag: u.ign,
-                        speed: parseInt(u.speed),
-                        character: u.character || 'BLACK THUNDER NISHIKAWA',
-                        setup: u.setup || 'Power 120 / Jump 120',
-                        state: u.state || u.region || 'India',
-                        city: u.city || '',
-                        proof: u.proof || '',
-                        uid: u.uid || '',
-                        updatedAt: u.updatedAt || new Date().toISOString()
-                    });
+            if (u && u.ign) {
+                const uSpeed = parseInt(u.speed, 10) || 0;
+                if (uSpeed > 0) {
+                    const uTag = u.ign.trim().toUpperCase();
+                    const existing = map.get(uTag);
+                    if (!existing || uSpeed >= (existing.speed || 0)) {
+                        map.set(uTag, {
+                            tag: u.ign.trim(),
+                            speed: uSpeed,
+                            character: u.character || 'BLACK THUNDER NISHIKAWA',
+                            setup: u.setup || 'Power 120 / Jump 120',
+                            state: u.state || u.region || 'India',
+                            city: u.city || '',
+                            proof: u.proof || '',
+                            uid: u.uid || '',
+                            updatedAt: u.updatedAt || new Date().toISOString()
+                        });
+                    }
                 }
             }
         }
@@ -506,15 +555,8 @@ async function initFirebaseLeaderboard() {
             const cleanList = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                const tagUpper = (data.tag || '').toUpperCase();
-                // Filter out any mock/seed players
-                if (data && data.tag && !MOCK_TAGS.has(tagUpper)) {
+                if (data && data.tag) {
                     cleanList.push(data);
-                } else if (MOCK_TAGS.has(tagUpper)) {
-                    // Automatically clean out mock player from Firestore if present
-                    try {
-                        deleteDoc(doc(db, "players", docSnap.id));
-                    } catch (e) {}
                 }
             });
 
@@ -523,30 +565,27 @@ async function initFirebaseLeaderboard() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
             onPlayersUpdated();
         }, (error) => {
-            console.warn("Firestore onSnapshot note (using local cache):", error);
-            loadLocalFallback();
+            console.warn("Firestore onSnapshot note (using local cache):", error?.message || error);
+            loadStoredPlayers();
         });
     } catch (err) {
-        console.warn("Firebase initialization note:", err);
-        loadLocalFallback();
+        console.warn("Firebase initialization note (using local cache):", err?.message || err);
+        loadStoredPlayers();
     }
 }
 
-function loadLocalFallback() {
+// Loads stored records immediately from localStorage so leaderboard is instantly ready on page refresh
+function loadStoredPlayers() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length) {
-                const clean = parsed.filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()));
-                allPlayers = alignAndSortPlayers(clean);
-                onPlayersUpdated();
-                return;
-            }
+        const merged = mergeWithLocalPlayers([]);
+        allPlayers = alignAndSortPlayers(merged);
+        if (allPlayers.length > 0) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
         }
-    } catch (e) {}
-    allPlayers = [];
-    onPlayersUpdated();
+        onPlayersUpdated();
+    } catch (e) {
+        console.warn('loadStoredPlayers notice:', e);
+    }
 }
 
 function onPlayersUpdated() {
@@ -714,10 +753,6 @@ function updateProfileAvatarPreview(charName, ign) {
 }
 
 function handleProfileOrSubmitClick() {
-    if (!isUserLoggedIn()) {
-        openLoginPromptModal();
-        return;
-    }
     const user = getCurrentUser();
     openRecordSubmissionModal(user);
 }
@@ -967,17 +1002,10 @@ async function syncRecordToFirebase(updatedUser, recordData, speed) {
 recordForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // 1. Enforce login requirement
-    if (!isUserLoggedIn()) {
-        showToast('🔐 Please log in first to save your profile & records.', 'warning');
-        openLoginPromptModal();
-        return;
-    }
-
-    const user = getCurrentUser() || {};
-    const ign       = recordIgnInput ? recordIgnInput.value.trim() : (user.ign || '');
-    const uid       = recordUidInput ? recordUidInput.value.trim() : (user.uid || '');
-    const speed     = parseInt(recordSpeedInput.value) || 0;
+    const rawUser   = getCurrentUser() || {};
+    const ign       = (recordIgnInput ? recordIgnInput.value.trim() : (rawUser.ign || '')).trim();
+    const uid       = (recordUidInput ? recordUidInput.value.trim() : (rawUser.uid || '')).trim();
+    const speed     = parseInt(recordSpeedInput.value, 10) || 0;
     const character = recordCharInput.value;
     const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
     const state     = recordStateInput.value.trim() || 'India';
@@ -986,6 +1014,12 @@ recordForm?.addEventListener('submit', async (e) => {
 
     if (!ign || !uid) {
         alert('Please enter your Spike Cross In-Game Name (IGN) and UID.');
+        return;
+    }
+
+    if (speed <= 0) {
+        alert('Please enter a valid spike speed greater than 0 KM/H.');
+        recordSpeedInput.focus();
         return;
     }
 
@@ -1002,7 +1036,7 @@ recordForm?.addEventListener('submit', async (e) => {
     const submitBtn = document.getElementById('submitRecordBtn');
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>⏳</span> SAVING...';
+        submitBtn.innerHTML = '<span>⏳</span> SAVING RECORD...';
     }
 
     const recordData = {
@@ -1017,8 +1051,28 @@ recordForm?.addEventListener('submit', async (e) => {
         updatedAt: new Date().toISOString()
     };
 
+    // Check whether the player already exists and whether the new speed is greater or smaller
+    const ignUpper = ign.toUpperCase();
+    const oldIgn = rawUser.ign ? rawUser.ign.toUpperCase() : '';
+    const existingPlayer = allPlayers.find(p => 
+        (p.tag || '').toUpperCase() === ignUpper || 
+        (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
+    );
+
+    let speedChangeNotice = '';
+    if (existingPlayer) {
+        const oldSpeed = existingPlayer.speed || 0;
+        if (speed > oldSpeed) {
+            speedChangeNotice = `⚡ SPEED INCREASE: +${speed - oldSpeed} KM/H (Was ${oldSpeed} KM/H)`;
+        } else if (speed < oldSpeed) {
+            speedChangeNotice = `ℹ️ Updated speed to ${speed} KM/H (Previous record: ${oldSpeed} KM/H)`;
+        } else {
+            speedChangeNotice = `ℹ️ Maintained record at ${speed} KM/H`;
+        }
+    }
+
     const updatedUser = {
-        ...user,
+        ...rawUser,
         ign,
         uid,
         character,
@@ -1031,42 +1085,32 @@ recordForm?.addEventListener('submit', async (e) => {
         updatedAt: new Date().toISOString()
     };
 
-    // 2. IMMEDIATE LOCAL PERSISTENCE: Never blocks or freezes
-    // A. Update current user session
+    // 1. IMMEDIATE LOCAL PERSISTENCE: Saved instantly across all refreshes
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-    
-    // B. Permanently remember details on this device
-    saveRememberedDetails({
-        ign,
-        uid,
-        character,
-        speed,
-        setup,
-        state,
-        city,
-        proof
-    });
+    saveRememberedDetails(updatedUser);
 
-    // C. Update leaderboard list immediately
-    if (speed > 0) {
-        const oldIgn = user.ign ? user.ign.toUpperCase() : '';
-        const existingIdx = allPlayers.findIndex(p => 
-            (p.tag || '').toUpperCase() === ign.toUpperCase() || 
-            (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
-        );
+    // 2. POSITION RECORD IN LEADERBOARD (Greater speeds rank higher, smaller speeds rank below)
+    const existingIdx = allPlayers.findIndex(p => 
+        (p.tag || '').toUpperCase() === ignUpper || 
+        (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
+    );
 
-        if (existingIdx >= 0) {
-            allPlayers[existingIdx] = recordData;
-        } else {
-            allPlayers.push(recordData);
-        }
-
-        allPlayers = alignAndSortPlayers(allPlayers);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
-        onPlayersUpdated();
+    if (existingIdx >= 0) {
+        allPlayers[existingIdx] = recordData;
+    } else {
+        allPlayers.push(recordData);
     }
 
-    // D. Refresh UI & close modal
+    // Sort strictly by speed descending and assign proper ranks
+    allPlayers = alignAndSortPlayers(allPlayers);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+    onPlayersUpdated();
+
+    // 3. Find the player's suitable rank and position in the table
+    const newRank = allPlayers.findIndex(p => (p.tag || '').toUpperCase() === ignUpper) + 1;
+    const totalPlayers = allPlayers.length;
+
+    // 4. Refresh UI and close modal
     checkUserSession();
     closeRecordModal();
     if (submitBtn) {
@@ -1074,15 +1118,39 @@ recordForm?.addEventListener('submit', async (e) => {
         submitBtn.innerHTML = '<span>💾</span> SAVE PROFILE &amp; LEADERBOARD RECORD';
     }
 
-    const newRank = allPlayers.findIndex(p => (p.tag || '').toUpperCase() === ign.toUpperCase()) + 1;
-    if (speed > 0 && newRank > 0) {
-        showToast(`🎉 Profile & Record saved! ${ign} is ranked #${newRank} with ${speed} KM/H!`, 'success');
-        document.getElementById('leaderboard-section')?.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        showToast(`🎉 Spike Cross profile details updated & remembered successfully!`, 'success');
+    // 5. Scroll to leaderboard & highlight the suitable place in the table
+    const tableSection = document.getElementById('leaderboard-section');
+    if (tableSection) {
+        tableSection.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 3. BACKGROUND SYNC TO FIREBASE (Non-blocking)
+    setTimeout(() => {
+        const targetRow = document.querySelector(`#leaderboard-tbody tr:nth-child(${newRank})`);
+        if (targetRow) {
+            document.querySelectorAll('tr.row-just-placed').forEach(r => r.classList.remove('row-just-placed'));
+            targetRow.classList.add('row-just-placed');
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => targetRow.classList.remove('row-just-placed'), 7000);
+        }
+    }, 150);
+
+    // 6. Descriptive toast feedback showing their rank in the table
+    let rankMessage = '';
+    if (newRank === 1) {
+        rankMessage = `👑 NEW #1 RECORD! <strong>${ign}</strong> is India's Champion with <strong>${speed} KM/H</strong>!`;
+    } else if (newRank <= 3) {
+        rankMessage = `🏆 PODIUM FINISH! <strong>${ign}</strong> claimed Rank <strong>#${newRank}</strong> with <strong>${speed} KM/H</strong>!`;
+    } else {
+        rankMessage = `🎉 Record placed at Rank <strong>#${newRank}</strong> of ${totalPlayers} with <strong>${speed} KM/H</strong>!`;
+    }
+
+    if (speedChangeNotice) {
+        showToast(`${rankMessage}<div style="margin-top:4px;font-size:12px;opacity:0.9;">${speedChangeNotice}</div>`, 'success');
+    } else {
+        showToast(rankMessage, 'success');
+    }
+
+    // 7. Background sync to Firebase (non-blocking)
     syncRecordToFirebase(updatedUser, recordData, speed);
 });
 
@@ -1096,12 +1164,16 @@ function showToast(msg, type = '') {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
         toast.className = 'admin-toast';
-    }, 4000);
+    }, 4500);
 }
 
-/* ── INIT ────────────────────────────────────────────────── */
-window.addEventListener('DOMContentLoaded', () => {
+/* ── INIT & IMMEDIATE DATA LOAD ──────────────────────────── */
+// Load immediately on script load so table and podium are NEVER blank on refresh
+loadStoredPlayers();
+
+function initApp() {
     checkUserSession();
+    loadStoredPlayers();
     initFirebaseLeaderboard();
 
     // Check if redirected with action=profile or submit=1
@@ -1115,5 +1187,11 @@ window.addEventListener('DOMContentLoaded', () => {
             window.history.replaceState({}, document.title, window.location.pathname);
         } catch (e) {}
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 

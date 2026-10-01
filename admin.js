@@ -35,12 +35,7 @@ const CHARACTER_FILES = [
 ];
 
 // ── MOCK PLAYER PURGE FILTER ─────────────────────────────────
-const MOCK_TAGS = new Set([
-  "SPIKE_MASTER10", "IND_VOLLEYKING", "THUNDERACE", "THESPIKEINDIAYT",
-  "AEROSPIKER", "REDZONE", "VOLLEYBALLGOD", "CROSSACE", "SKYSPIKE",
-  "BLAZEX", "ACEINDIA", "SHADOWSPIKE", "ZENITSUPLAYZ", "ROYALSPIKER",
-  "SPIKESTORM", "VOLTSPIKER", "INFINITYJUMP", "DARKACE", "HYPERSPIKE", "NEXTGENSPIKE"
-]);
+const MOCK_TAGS = new Set();
 
 const DEFAULT_PLAYERS = [];
 
@@ -155,46 +150,59 @@ logoutBtn?.addEventListener('click', () => {
 
 // ── DATA MANAGEMENT (FIREBASE + LOCAL SYNC) ─────────────────
 async function initAdminData() {
-    showToast('Connecting to Firebase Firestore...', '');
-    try {
-        const snap = await getDocs(collection(db, "players"));
-        const list = [];
-        snap.forEach(d => {
-            const data = d.data();
-            const tagUpper = (data.tag || '').toUpperCase();
-            if (data && data.tag && !MOCK_TAGS.has(tagUpper)) {
-                list.push(data);
-            } else if (MOCK_TAGS.has(tagUpper)) {
-                try {
-                    deleteDoc(doc(db, "players", d.id));
-                } catch (e) {}
-            }
-        });
-        players = list.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-        renderAll();
-        showToast(players.length ? 'Loaded records from Firebase!' : 'Leaderboard is empty. Awaiting real submissions.', 'success');
-        return;
-    } catch (e) {
-        console.warn('Firebase admin load note:', e);
-    }
-
-    // Local fallback
+    // 1. Immediately load local records so admin panel is instantly populated
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
             const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                players = parsed.filter(p => p && p.tag && !MOCK_TAGS.has((p.tag || '').toUpperCase()));
-                players.sort((a, b) => (parseInt(b.speed) || 0) - (parseInt(a.speed) || 0));
+            if (Array.isArray(parsed) && parsed.length) {
+                players = parsed
+                    .filter(p => p && p.tag)
+                    .map(p => ({ ...p, speed: parseInt(p.speed, 10) || 0 }))
+                    .filter(p => p.speed > 0)
+                    .sort((a, b) => b.speed - a.speed);
                 renderAll();
-                return;
             }
         }
     } catch (e) {}
 
-    players = [];
-    renderAll();
+    // 2. Attempt remote sync from Firebase Firestore
+    try {
+        const snap = await getDocs(collection(db, "players"));
+        const remoteMap = new Map();
+        snap.forEach(d => {
+            const data = d.data();
+            if (data && data.tag) {
+                const tagUpper = data.tag.trim().toUpperCase();
+                const sp = parseInt(data.speed, 10) || 0;
+                if (sp > 0) remoteMap.set(tagUpper, { ...data, speed: sp });
+            }
+        });
+
+        // Merge remote with current local players (preserving whichever has greater or equal speed)
+        players.forEach(p => {
+            const tagUpper = (p.tag || '').trim().toUpperCase();
+            if (!remoteMap.has(tagUpper)) {
+                remoteMap.set(tagUpper, p);
+            } else {
+                const remoteP = remoteMap.get(tagUpper);
+                if ((p.speed || 0) > (remoteP.speed || 0)) {
+                    remoteMap.set(tagUpper, p);
+                }
+            }
+        });
+
+        players = Array.from(remoteMap.values()).sort((a, b) => (b.speed || 0) - (a.speed || 0));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+        renderAll();
+        showToast(players.length ? 'Leaderboard records synchronized!' : 'Leaderboard ready for submissions.', 'success');
+        return;
+    } catch (e) {
+        console.warn('Firebase admin load note (using local cache):', e);
+        if (players.length) {
+            showToast(`Loaded ${players.length} records from local cache.`, '');
+        }
+    }
 }
 
 async function savePlayerDataToFirebase(player) {
