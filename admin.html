@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spike India | Admin Control Panel</title>
+    <meta name="description" content="Admin Dashboard to manage The Spike Cross India leaderboard, edit player tags, spike speeds, characters, and image mappings.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+    <!-- PARTICLES CANVAS -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- THEME TOGGLE -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+        <span class="toggle-icon" id="toggleIcon">☀️</span>
+    </button>
+
+    <!-- ADMIN AUTH OVERLAY (Gated) -->
+    <div class="admin-auth-overlay" id="adminAuthOverlay">
+        <div class="admin-auth-modal">
+            <div class="modal-badge">🔒 RESTRICTED AREA</div>
+            <h2>LEADERBOARD ADMIN</h2>
+            <p>Enter the admin passcode to modify player names, speeds, and character rosters.</p>
+            
+            <form id="adminPassForm">
+                <div class="pass-input-wrap">
+                    <span class="lock-icon">🔑</span>
+                    <input type="password" id="adminPassInput" placeholder="Enter Admin Passcode" required autofocus autocomplete="current-password">
+                </div>
+                <div class="pass-hint">💡 Default passcode: <strong>admin123</strong></div>
+                <button type="submit" class="submit-btn full-w">UNLOCK ADMIN DASHBOARD</button>
+            </form>
+            <div id="adminPassError" class="pass-error" style="display:none;"></div>
+            <a href="index.html" class="cancel-back-link">← Cancel &amp; Back to Leaderboard</a>
+        </div>
+    </div>
+
+    <!-- MAIN ADMIN WRAPPER -->
+    <div class="admin-wrapper" id="adminDashboard" style="display:none;">
+
+        <!-- TOP BAR -->
+        <header class="admin-header">
+            <div class="admin-header-left">
+                <a href="index.html" class="back-link">
+                    <span class="arrow">←</span> VIEW PUBLIC LEADERBOARD
+                </a>
+                <div class="admin-title-group">
+                    <span class="admin-badge">⚙ CONTROL PANEL</span>
+                    <h1 class="admin-main-title">THE SPIKE INDIA LEADERBOARD ADMIN</h1>
+                </div>
+            </div>
+
+            <div class="admin-header-right">
+                <button class="action-btn secondary-btn" id="logoutAdminBtn">🔒 Lock Admin</button>
+                <button class="action-btn success-btn" id="saveAllBtn">💾 Save &amp; Publish</button>
+            </div>
+        </header>
+
+        <!-- STATS BAR -->
+        <div class="admin-stats-grid">
+            <div class="admin-stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <span class="stat-val" id="statPlayerCount">0</span>
+                    <span class="stat-lbl">TOTAL PLAYERS</span>
+                </div>
+            </div>
+
+            <div class="admin-stat-card gold-border">
+                <div class="stat-icon">👑</div>
+                <div class="stat-info">
+                    <span class="stat-val" id="statTopSpeed">0 KM/H</span>
+                    <span class="stat-lbl" id="statTopPlayer">#1 TOP RECORD</span>
+                </div>
+            </div>
+
+            <div class="admin-stat-card silver-border">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-info">
+                    <span class="stat-val" id="statRunnerSpeed">0 KM/H</span>
+                    <span class="stat-lbl" id="statRunnerPlayer">#2 RUNNER UP</span>
+                </div>
+            </div>
+
+            <div class="admin-stat-card">
+                <div class="stat-icon">🖼️</div>
+                <div class="stat-info">
+                    <span class="stat-val">DYNAMIC</span>
+                    <span class="stat-lbl">NAME-BASED IMAGES</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- INFO BANNER ABOUT PLAYER IMAGES -->
+        <div class="info-alert-banner">
+            <div class="alert-icon">💡</div>
+            <div class="alert-content">
+                <strong>Player Name Image System Active:</strong> Player avatars are automatically loaded from <code>Thespike/images/[player_name].jpg</code> (or <code>.png</code>). When you add or rename a player, simply save their picture with that exact player name in the <code>images/</code> folder and it displays automatically! If no image file is found yet, a sleek esports monogram badge is shown as fallback.
+            </div>
+        </div>
+
+        <!-- CONTROLS & SEARCH -->
+        <div class="admin-controls-bar">
+            <div class="admin-search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="adminSearch" placeholder="Search players by name, character, or state...">
+            </div>
+
+            <div class="admin-buttons-group">
+                <button class="action-btn primary-btn" id="openAddModalBtn">
+                    <span>➕</span> ADD NEW PLAYER
+                </button>
+                <button class="action-btn warning-btn" id="resetDefaultsBtn">
+                    <span>🔄</span> RESET TO DEFAULTS
+                </button>
+            </div>
+        </div>
+
+        <!-- PLAYERS TABLE -->
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th width="60">RANK</th>
+                        <th width="80">IMAGE</th>
+                        <th>PLAYER NAME / TAG</th>
+                        <th width="140">SPEED (KM/H)</th>
+                        <th>CHARACTER</th>
+                        <th>SETUP / STATS</th>
+                        <th>STATE &amp; CITY</th>
+                        <th>PROOF LINK</th>
+                        <th width="140">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                    <!-- Populated by admin.js -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast" class="admin-toast"></div>
+
+    </div>
+
+    <!-- MODAL: ADD / EDIT PLAYER -->
+    <div class="modal-backdrop" id="playerModal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">ADD NEW PLAYER</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+
+            <form id="playerForm">
+                <input type="hidden" id="editIndex" value="-1">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="formTag">PLAYER NAME / TAG *</label>
+                        <input type="text" id="formTag" required placeholder="e.g. SPIKE_VIPER">
+                        <span class="form-hint">Image will be loaded as: <code id="expectedImageName">images/SPIKE_VIPER.jpg</code></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formSpeed">TOP SPEED (KM/H) *</label>
+                        <input type="number" id="formSpeed" required min="50" max="250" placeholder="e.g. 196">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="formCharacterSelect">SELECT CHARACTER (FROM IMAGES) *</label>
+                        <select id="formCharacterSelect">
+                            <option value="">-- Choose from Available Images --</option>
+                            <option value="BLACK THUNDER NISHIKAWA">BLACK THUNDER NISHIKAWA</option>
+                            <option value="NISHIKAWA">NISHIKAWA</option>
+                            <option value="HEESEONG">HEESEONG</option>
+                            <option value="JAEHYUN">JAEHYUN</option>
+                            <option value="YOUNGSUP">YOUNGSUP</option>
+                            <option value="RAUL">RAUL</option>
+                            <option value="LUCAS">LUCAS</option>
+                            <option value="DAVE">DAVE</option>
+                            <option value="RYUHYEON">RYUHYEON</option>
+                            <option value="JENNY">JENNY</option>
+                            <option value="SARA">SARA</option>
+                            <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL</option>
+                            <option value="CUSTOM">✏️ Custom Character (Type Below)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formCharacter">OR WRITE CHARACTER NAME *</label>
+                        <input type="text" id="formCharacter" list="charDatalist" required placeholder="e.g. NISHIKAWA or HEESEONG">
+                        <datalist id="charDatalist">
+                            <option value="BLACK THUNDER NISHIKAWA">
+                            <option value="NISHIKAWA">
+                            <option value="HEESEONG">
+                            <option value="JAEHYUN">
+                            <option value="YOUNGSUP">
+                            <option value="RAUL">
+                            <option value="LUCAS">
+                            <option value="DAVE">
+                            <option value="RYUHYEON">
+                            <option value="JENNY">
+                            <option value="SARA">
+                            <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="formSetup">SETUP / STATS</label>
+                    <input type="text" id="formSetup" placeholder="e.g. Power 120 / Jump 120">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="formState">STATE *</label>
+                        <input type="text" id="formState" required placeholder="e.g. Karnataka">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formCity">CITY *</label>
+                        <input type="text" id="formCity" required placeholder="e.g. Bengaluru">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="formProof">PROOF VIDEO LINK</label>
+                    <input type="text" id="formProof" placeholder="https://youtube.com/shorts/... or #">
+                </div>
+
+                <!-- LIVE PREVIEW BOX -->
+                <div class="image-preview-box">
+                    <div class="preview-avatar" id="modalAvatarPreview">
+                        <span>P</span>
+                    </div>
+                    <div class="preview-info">
+                        <strong>Avatar Status:</strong>
+                        <span id="modalImageStatus">Looking for images/[name].jpg or .png</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="action-btn secondary-btn" id="cancelModalBtn">Cancel</button>
+                    <button type="submit" class="action-btn primary-btn" id="savePlayerBtn">Save Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

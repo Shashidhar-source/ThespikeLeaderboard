@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spike Cross India | Player Login & Registration</title>
+    <meta name="description" content="Register or Login with your Spike Cross account. Verify your in-game UID and compete on India's #1 spike speed leaderboard.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+    <!-- PARTICLES CANVAS -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- THEME TOGGLE -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+        <span class="toggle-icon" id="toggleIcon">☀️</span>
+    </button>
+
+    <!-- PAGE WRAPPER -->
+    <div class="auth-page-wrapper">
+
+        <!-- TOP BAR -->
+        <header class="auth-header">
+            <a href="index.html" class="back-link">
+                <span class="arrow">←</span> BACK TO LEADERBOARD
+            </a>
+            <div class="auth-logo">
+                THE <span class="red-text">SPIKE</span> INDIA
+            </div>
+            <div class="game-badge">THE SPIKE CROSS</div>
+        </header>
+
+        <!-- MAIN AUTH CONTAINER -->
+        <main class="auth-container">
+            <div class="auth-card">
+                
+                <!-- HEADER BADGE -->
+                <div class="auth-badge-strip">
+                    <span class="cross-badge">🏐 SPIKE CROSS PASS</span>
+                    <span class="region-badge">🇮🇳 INDIA REGION</span>
+                </div>
+
+                <!-- TITLE & SUBTITLE -->
+                <h1 class="auth-title">PLAYER ACCESS</h1>
+                <p class="auth-subtitle">Link your official Spike Cross account to track stats, submit speed records & rank up.</p>
+
+                <!-- TAB SWITCHER -->
+                <div class="auth-tabs" role="tablist">
+                    <button class="tab-btn active" id="tabLogin" type="button" role="tab" aria-selected="true">
+                        <span class="tab-icon">⚡</span> LOGIN
+                    </button>
+                    <button class="tab-btn" id="tabRegister" type="button" role="tab" aria-selected="false">
+                        <span class="tab-icon">📝</span> REGISTER SPIKE CROSS
+                    </button>
+                </div>
+
+                <!-- ALERT BOX -->
+                <div class="auth-alert" id="authAlert" style="display:none;"></div>
+
+                <!-- LOGIN FORM -->
+                <form id="loginForm" class="auth-form active">
+                    <div class="form-group">
+                        <label for="loginIdentifier">SPIKE CROSS IGN / EMAIL</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="loginIdentifier" placeholder="e.g. SPIKE_MASTER10 or player@gmail.com" required autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-with-link">
+                            <label for="loginPassword">PASSWORD</label>
+                            <a href="#" id="forgotPassLink" class="text-link">Forgot?</a>
+                        </div>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                            <button type="button" class="pwd-toggle" data-target="loginPassword" title="Show/Hide">👁</button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="rememberMe" checked>
+                            <span class="checkmark"></span>
+                            Stay Logged In
+                        </label>
+                        <a href="admin.html" class="admin-quick-link">Admin Access →</a>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="loginBtn">
+                        <span class="btn-text">SIGN IN TO SPIKE CROSS</span>
+                        <span class="btn-glow"></span>
+                    </button>
+                </form>
+
+                <!-- REGISTER FORM -->
+                <form id="registerForm" class="auth-form" style="display:none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regIgn">SPIKE CROSS IN-GAME NAME (IGN)</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🎮</span>
+                                <input type="text" id="regIgn" placeholder="e.g. ThunderAce_IN" required>
+                            </div>
+                            <span class="field-hint">Your exact in-game player name</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regUid">SPIKE CROSS UID / ID</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🆔</span>
+                                <input type="text" id="regUid" placeholder="e.g. SC-849201" required>
+                            </div>
+                            <span class="field-hint">Found under Game Settings → Profile</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regEmail">EMAIL ADDRESS</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">✉️</span>
+                                <input type="email" id="regEmail" placeholder="yourname@gmail.com" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regRegion">STATE / SERVER ZONE</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">📍</span>
+                                <select id="regRegion" required>
+                                    <option value="">Select State</option>
+                                    <option value="Karnataka">Karnataka</option>
+                                    <option value="Tamil Nadu">Tamil Nadu</option>
+                                    <option value="Maharashtra">Maharashtra</option>
+                                    <option value="Delhi">Delhi</option>
+                                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                    <option value="Telangana">Telangana</option>
+                                    <option value="Gujarat">Gujarat</option>
+                                    <option value="Rajasthan">Rajasthan</option>
+                                    <option value="West Bengal">West Bengal</option>
+                                    <option value="Kerala">Kerala</option>
+                                    <option value="Punjab">Punjab</option>
+                                    <option value="Other">Other India State</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regCharacter">MAIN CHARACTER</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🏐</span>
+                                <select id="regCharacter" required>
+                                    <option value="Nishikawa">Nishikawa (All-Rounder S+)</option>
+                                    <option value="Oasis">Oasis (High Noon Spiker)</option>
+                                    <option value="Sanghyeon">Sanghyeon (Highlight MB)</option>
+                                    <option value="Solhwa">Solhwa (Legendary Setter)</option>
+                                    <option value="Masked Solhwa">Masked Solhwa (Awakened)</option>
+                                    <option value="Heesung">Heesung (Iron Wall MB)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regSpeed">HIGHEST SPIKE SPEED (KM/H)</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">⚡</span>
+                                <input type="number" id="regSpeed" min="50" max="230" placeholder="e.g. 185">
+                            </div>
+                            <span class="field-hint">Optional, verified during leaderboard review</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regPassword">PASSWORD</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="regPassword" placeholder="Minimum 6 characters" required autocomplete="new-password">
+                                <button type="button" class="pwd-toggle" data-target="regPassword" title="Show/Hide">👁</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="regConfirmPassword">CONFIRM PASSWORD</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔒</span>
+                                <input type="password" id="regConfirmPassword" placeholder="Re-enter password" required autocomplete="new-password">
+                                <button type="button" class="pwd-toggle" data-target="regConfirmPassword" title="Show/Hide">👁</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-options terms-option">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="termsAgree" required>
+                            <span class="checkmark"></span>
+                            I confirm this is my valid Spike Cross account and agree to fair play rules.
+                        </label>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="registerBtn">
+                        <span class="btn-text">CREATE SPIKE CROSS ACCOUNT</span>
+                        <span class="btn-glow"></span>
+                    </button>
+                </form>
+
+                <!-- FOOTER NOTICE -->
+                <div class="auth-card-footer">
+                    <p>🔒 Spike Cross accounts are stored securely locally. Tournament admins can verify your ID in the <a href="admin.html">Admin Panel</a>.</p>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="auth-footer">
+            <p>© 2026 THE SPIKE INDIA · Fan-made competitive speed portal for The Spike Cross</p>
+        </footer>
+
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>

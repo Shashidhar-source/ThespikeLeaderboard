@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Spike India | Highest Speed Leaderboard</title>
+    <meta name="description" content="India's #1 The Spike Cross speed leaderboard. Track top players, their characters, setups and verified spike speeds from across India.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- PARTICLES CANVAS -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- THEME TOGGLE -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+        <span class="toggle-icon" id="toggleIcon">☀️</span>
+    </button>
+
+    <!-- PAGE WRAPPER -->
+    <div class="page-wrapper">
+
+        <!-- HEADER -->
+        <header class="site-header">
+
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="logo">
+                    THE <span class="red-text">SPIKE</span> INDIA
+                </div>
+                <nav class="top-nav">
+                    <a href="#leaderboard-section">Leaderboard</a>
+                    <a href="#about-section">About</a>
+                    <span id="userNavSlot"><a href="login.html" class="nav-login-btn">Login</a></span>
+                    <a href="admin.html" class="admin-link">⚙ Admin</a>
+                </nav>
+                <div class="game-badge">THE SPIKE CROSS</div>
+            </div>
+
+            <!-- HERO SECTION -->
+            <div class="hero">
+
+                <!-- Animated speed gauge -->
+                <div class="speed-gauge" id="speedGauge">
+                    <svg viewBox="0 0 200 120" class="gauge-svg">
+                        <!-- Gauge arc -->
+                        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" stroke-linecap="round"/>
+                        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="60" class="gauge-arc-fill"/>
+                        <!-- Tick marks -->
+                        <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(-90, 100, 110)"/>
+                        <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(-45, 100, 110)"/>
+                        <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(0, 100, 110)"/>
+                        <line x1="20" y1="110" x2="30" y2="110" stroke="rgba(255,255,255,0.4)" stroke-width="2" transform="rotate(45, 100, 110)"/>
+                        <!-- Needle -->
+                        <line x1="100" y1="110" x2="100" y2="38" stroke="white" stroke-width="3" stroke-linecap="round" class="gauge-needle" id="gaugeNeedle"/>
+                        <circle cx="100" cy="110" r="8" fill="#ff1515"/>
+                        <circle cx="100" cy="110" r="4" fill="white"/>
+                        <!-- Speed readout -->
+                        <text id="gaugeSpeedLabel" x="100" y="82" text-anchor="middle"
+                              fill="white" font-size="9.5"
+                              font-family="Barlow Condensed, sans-serif"
+                              font-weight="900" letter-spacing="1">--- KM/H</text>
+                        <!-- Labels -->
+                        <text x="16" y="125" fill="rgba(255,255,255,0.5)" font-size="10" font-family="Barlow Condensed">0</text>
+                        <text x="177" y="125" fill="rgba(255,255,255,0.5)" font-size="10" font-family="Barlow Condensed">MAX</text>
+                        <defs>
+                            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#ff4500"/>
+                                <stop offset="100%" stop-color="#ff0000"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="gauge-label">MAX SPEED</div>
+                </div>
+
+                <!-- Hero text -->
+                <div class="hero-text">
+                    <div class="hero-eyebrow">🇮🇳 THE SPIKE CROSS INDIA</div>
+                    <h1 class="hero-title">
+                        HIGHEST<br>
+                        <strong class="red-text glitch" data-text="SPEED">SPEED</strong>
+                    </h1>
+                    <h2 class="hero-subtitle">IN INDIA</h2>
+                    <div class="tricolor-bar"></div>
+                    <p class="hero-tagline">INDIA'S OFFICIAL SPIKE CROSS SPEED LEADERBOARD</p>
+                </div>
+
+                <!-- Speed stats strip -->
+                <div class="stats-strip">
+                    <div class="stat-item">
+                        <span class="stat-num" data-count="198">0</span>
+                        <span class="stat-unit">KM/H</span>
+                        <span class="stat-label">TOP SPEED</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-num" data-count="20">0</span>
+                        <span class="stat-unit">+</span>
+                        <span class="stat-label">PLAYERS</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-num" data-count="15">0</span>
+                        <span class="stat-unit">+</span>
+                        <span class="stat-label">STATES</span>
+                    </div>
+                </div>
+
+            </div>
+        </header>
+
+        <!-- SPEED LINES DECORATION -->
+        <div class="speed-lines-container">
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+            <div class="speed-line"></div>
+        </div>
+
+        <!-- LEADERBOARD SECTION -->
+        <main id="leaderboard-section" class="main-content">
+
+            <!-- Leaderboard header bar -->
+            <div class="section-header">
+                <div class="section-header-left">
+                    <span class="section-eyebrow">🇮🇳 INDIA</span>
+                    <h3 class="section-title">TOP SPEED LEADERBOARD</h3>
+                </div>
+                <div class="section-header-right">
+                    <div class="player-count">
+                        <span class="count-num">20</span>
+                        <span class="count-label">PLAYERS</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter / Search bar -->
+            <div class="filter-bar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search player tag..." />
+                </div>
+                <div class="filter-group">
+                    <select id="charFilter">
+                        <option value="">All Characters</option>
+                        <option value="Nishikawa">Nishikawa</option>
+                        <option value="Oasis">Oasis</option>
+                        <option value="Sanghyeon">Sanghyeon</option>
+                        <option value="Solhwa">Solhwa</option>
+                        <option value="Masked Solhwa">Masked Solhwa</option>
+                        <option value="Heesung">Heesung</option>
+                    </select>
+                    <select id="stateFilter">
+                        <option value="">All States</option>
+                        <option value="Karnataka">Karnataka</option>
+                        <option value="Tamil Nadu">Tamil Nadu</option>
+                        <option value="Maharashtra">Maharashtra</option>
+                        <option value="Delhi">Delhi</option>
+                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                        <option value="Telangana">Telangana</option>
+                        <option value="Gujarat">Gujarat</option>
+                        <option value="Rajasthan">Rajasthan</option>
+                        <option value="West Bengal">West Bengal</option>
+                        <option value="Madhya Pradesh">Madhya Pradesh</option>
+                        <option value="Kerala">Kerala</option>
+                        <option value="Punjab">Punjab</option>
+                        <option value="Bihar">Bihar</option>
+                        <option value="Assam">Assam</option>
+                        <option value="Odisha">Odisha</option>
+                        <option value="Jharkhand">Jharkhand</option>
+                        <option value="Chhattisgarh">Chhattisgarh</option>
+                        <option value="Haryana">Haryana</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- TOP 3 PODIUM -->
+            <div class="podium-section">
+                <div class="podium-card podium-2" id="podium2">
+                    <!-- Filled by JS -->
+                </div>
+                <div class="podium-card podium-1" id="podium1">
+                    <!-- Filled by JS -->
+                </div>
+                <div class="podium-card podium-3" id="podium3">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-wrapper">
+                <table id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>RANK</th>
+                            <th>PLAYER TAG</th>
+                            <th class="sortable" id="sortSpeed">TOP SPEED <span class="sort-arrow">↓</span></th>
+                            <th>CHARACTER &amp; SETUP</th>
+                            <th>STATE / CITY</th>
+                            <th>PROOF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-tbody">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+                <div class="no-results" id="noResults" style="display:none;">
+                    No players found matching your search.
+                </div>
+            </div>
+
+        </main>
+
+        <!-- ABOUT SECTION -->
+        <section id="about-section" class="about-section">
+            <div class="about-inner">
+                <h3 class="about-title">ABOUT THIS LEADERBOARD</h3>
+                <p class="about-text">
+                    The Spike India Speed Leaderboard tracks India's top players in <strong>The Spike Cross</strong> 
+                    by their highest verified spike speed. To be featured, players must submit 
+                    screenshot or video proof of their speed record.
+                </p>
+                <div class="about-features">
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-text">Verified Speed Records</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🇮🇳</div>
+                        <div class="feature-text">India Community</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🏆</div>
+                        <div class="feature-text">Top 20 Players</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🎮</div>
+                        <div class="feature-text">The Spike Cross</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="site-footer">
+            <div class="footer-logo">
+                THE SPIKE <span class="red-text">INDIA</span>
+            </div>
+            <p class="footer-tagline">THE SPIKE CROSS · INDIA'S SPEED CHALLENGE</p>
+            <p class="footer-copy">© 2024 The Spike India. Unofficial community leaderboard.</p>
+        </footer>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
