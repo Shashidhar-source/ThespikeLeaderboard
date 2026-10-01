@@ -22,6 +22,7 @@ const CHARACTER_FILES = [
   "BLACK THUNDER NISHIKAWA",
   "DAVE",
   "HEESEONG",
+  "ISABEL",
   "JAEHYUN",
   "JENNY",
   "LUCAS",
@@ -256,6 +257,7 @@ function resolveCharacterInfo(charName, playerName) {
 
     if (!matchedName && normChar) {
         if (normChar.includes('HEES')) matchedName = 'HEESEONG';
+        else if (normChar.includes('ISAB')) matchedName = 'ISABEL';
         else if (normChar.includes('BLACK') || normChar.includes('THUNDER')) matchedName = 'BLACK THUNDER NISHIKAWA';
         else if (normChar.includes('HS') || normChar.includes('HIGH')) matchedName = 'NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL';
         else if (normChar.includes('NISHIK')) matchedName = 'NISHIKAWA';
@@ -357,7 +359,7 @@ function renderTable() {
                     <span style="color:var(--text-secondary);font-size:12px;">${p.setup || 'Default'}</span>
                 </td>
                 <td>
-                    <span>🇮🇳 ${p.state}</span>, <small style="color:var(--text-muted);">${p.city}</small>
+                    <span>🇮🇳 ${p.state}</span>${p.city ? `, <small style="color:var(--text-muted);">${p.city}</small>` : ''}
                 </td>
                 <td>
                     ${renderProofLinkStatus(p.proof)}
@@ -550,7 +552,7 @@ playerForm?.addEventListener('submit', (e) => {
     const city      = formCity.value.trim();
     const proof     = formProof.value.trim() || '#';
 
-    if (!tag || isNaN(speed) || !character || !state || !city) {
+    if (!tag || isNaN(speed) || !character || !state) {
         showToast('Please fill all required fields.', 'error');
         return;
     }

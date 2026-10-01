@@ -29,6 +29,7 @@ const CHARACTER_FILES = [
   "BLACK THUNDER NISHIKAWA",
   "DAVE",
   "HEESEONG",
+  "ISABEL",
   "JAEHYUN",
   "JENNY",
   "LUCAS",
@@ -65,6 +66,7 @@ function resolveCharacterImageInfo(charName, playerName) {
 
     if (!matchedName && normChar) {
         if (normChar.includes('HEES')) matchedName = 'HEESEONG';
+        else if (normChar.includes('ISAB')) matchedName = 'ISABEL';
         else if (normChar.includes('BLACK') || normChar.includes('THUNDER')) matchedName = 'BLACK THUNDER NISHIKAWA';
         else if (normChar.includes('HS') || normChar.includes('HIGH')) matchedName = 'NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL';
         else if (normChar.includes('NISHIK')) matchedName = 'NISHIKAWA';
@@ -324,7 +326,7 @@ function renderPodium(list) {
             <div class="podium-tag">${player.tag}</div>
             <div class="podium-speed">${player.speed} KM/H</div>
             <div class="podium-char">${player.character} · ${player.setup || 'Default'}</div>
-            <div class="podium-state">📍 ${player.state}, ${player.city}</div>
+            <div class="podium-state">📍 ${player.city ? player.state + ', ' + player.city : player.state}</div>
         `;
     });
 }
@@ -399,7 +401,7 @@ function renderTable(list) {
             <td>
                 <div class="location-cell">
                     <div class="location-state">🇮🇳 ${p.state}</div>
-                    <div class="location-city">${p.city}</div>
+                    ${p.city ? `<div class="location-city">${p.city}</div>` : ''}
                 </div>
             </td>
             <td>${renderProofButton(p.proof)}</td>
@@ -527,9 +529,10 @@ function updateProfileAvatarPreview(charName, ign) {
     if (!profileAvatarPreview) return;
     const info = resolveCharacterImageInfo(charName, ign);
     if (profileAvatarName) profileAvatarName.textContent = info.name || 'Character Avatar';
-    if (info.pngSrc) {
-        profileAvatarPreview.innerHTML = `<img src="${info.pngSrc}" alt="${info.name}" style="width:100%;height:100%;object-fit:contain;" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🏐</span>'">`;
-        if (profileAvatarStatus) profileAvatarStatus.textContent = 'Background-removed character image ready';
+    const primaryImg = info.pngSrc || info.jpgSrc;
+    if (primaryImg) {
+        profileAvatarPreview.innerHTML = `<img src="${primaryImg}" alt="${info.name}" style="width:100%;height:100%;object-fit:contain;" data-jpg="${info.jpgSrc || ''}" onerror="if(!this.dataset.triedJpg && this.dataset.jpg){this.dataset.triedJpg='1';this.src=this.dataset.jpg;}else{this.parentElement.innerHTML='<span>🏐</span>';}">`;
+        if (profileAvatarStatus) profileAvatarStatus.textContent = 'Character image ready';
     } else {
         profileAvatarPreview.innerHTML = '<span>🏐</span>';
         if (profileAvatarStatus) profileAvatarStatus.textContent = 'Default avatar';
@@ -758,7 +761,7 @@ recordForm?.addEventListener('submit', async (e) => {
     const character = recordCharInput.value;
     const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
     const state     = recordStateInput.value.trim() || 'India';
-    const city      = recordCityInput.value.trim() || 'India';
+    const city      = recordCityInput ? recordCityInput.value.trim() : '';
     const proof     = recordProofInput.value.trim();
 
     if (!ign || !uid) {
