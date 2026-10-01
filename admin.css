@@ -607,6 +607,49 @@
     transition: all var(--transition);
 }
 
+.modal-content select,
+select {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+[data-theme="light"] .modal-content select,
+[data-theme="light"] select {
+    color-scheme: light;
+}
+
+select option,
+.modal-content select option {
+    background-color: #12141c !important;
+    color: #ffffff !important;
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+select option:checked,
+select option:hover,
+.modal-content select option:checked,
+.modal-content select option:hover {
+    background-color: #ff1515 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] .modal-content select option {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+
+[data-theme="light"] select option:checked,
+[data-theme="light"] select option:hover,
+[data-theme="light"] .modal-content select option:checked,
+[data-theme="light"] .modal-content select option:hover {
+    background-color: #e60000 !important;
+    color: #ffffff !important;
+}
+
 [data-theme="light"] .modal-content input,
 [data-theme="light"] .modal-content select {
     background: #fff;
@@ -618,6 +661,7 @@
     border-color: var(--accent-red);
     box-shadow: 0 0 0 2px rgba(255,21,21,0.2);
 }
+
 
 .form-hint {
     font-size: 11px;

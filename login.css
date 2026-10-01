@@ -309,12 +309,70 @@
     padding: 12px 14px 12px 10px;
 }
 
+.input-wrapper select {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+[data-theme="light"] .input-wrapper select {
+    color-scheme: light;
+}
+
+select option,
+.input-wrapper select option {
+    background-color: #12141c !important;
+    color: #ffffff !important;
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+select option:checked,
+select option:hover,
+.input-wrapper select option:checked,
+.input-wrapper select option:hover {
+    background-color: #ff1515 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] .input-wrapper select option {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+
+[data-theme="light"] select option:checked,
+[data-theme="light"] select option:hover,
+[data-theme="light"] .input-wrapper select option:checked,
+[data-theme="light"] .input-wrapper select option:hover {
+    background-color: #e60000 !important;
+    color: #ffffff !important;
+}
+
 .input-wrapper input::placeholder {
     color: var(--text-muted);
     font-weight: 500;
 }
 
+/* Fix dark mode browser autofill white background */
+.input-wrapper input:-webkit-autofill,
+.input-wrapper input:-webkit-autofill:hover, 
+.input-wrapper input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0b0d14 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+[data-theme="light"] .input-wrapper input:-webkit-autofill,
+[data-theme="light"] .input-wrapper input:-webkit-autofill:hover, 
+[data-theme="light"] .input-wrapper input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #111111 !important;
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+}
+
 .pwd-toggle {
+
     background: transparent;
     border: none;
     color: var(--text-muted);

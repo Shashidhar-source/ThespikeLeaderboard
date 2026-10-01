@@ -10,8 +10,10 @@
    ============================================================ */
 
 :root {
+    color-scheme: dark;
     /* Dark mode defaults */
     --bg-primary: #050505;
+
     --bg-secondary: #0a0a0a;
     --bg-card: #0d0d0d;
     --bg-table-head: linear-gradient(90deg, #2a0000, #5c0000, #2a0000);
@@ -65,7 +67,9 @@
 
 /* LIGHT MODE OVERRIDES */
 [data-theme="light"] {
+    color-scheme: light;
     --bg-primary: #f5f5f5;
+
     --bg-secondary: #eeeeee;
     --bg-card: #ffffff;
     --bg-table-head: linear-gradient(90deg, #c0000a, #e80010, #c0000a);
@@ -1945,3 +1949,106 @@ tbody tr {
     background: #009944;
     color: white;
 }
+
+/* ── Global Select & Option Dark/Light Mode Fixes ── */
+select {
+    color-scheme: dark;
+    background-color: var(--select-bg, #0d0000);
+    color: var(--text-primary, #ffffff);
+    border: 1px solid var(--border-color, rgba(255, 21, 21, 0.3));
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+select:focus {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 2px rgba(255, 21, 21, 0.2);
+}
+
+select option,
+optgroup {
+    background-color: #12141c !important;
+    color: #ffffff !important;
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+select option:checked,
+select option:hover {
+    background-color: #ff1515 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="light"] select {
+    color-scheme: light;
+    background-color: #ffffff;
+    color: #111111;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] optgroup {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+}
+
+[data-theme="light"] select option:checked,
+[data-theme="light"] select option:hover {
+    background-color: #e60000 !important;
+    color: #ffffff !important;
+}
+
+/* Modal Form Controls */
+.record-modal-content select,
+.record-modal-content input {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.record-modal-content select:focus,
+.record-modal-content input:focus {
+    border-color: var(--accent-red);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 21, 21, 0.25);
+}
+
+[data-theme="light"] .record-modal-content select,
+[data-theme="light"] .record-modal-content input {
+    background-color: #ffffff;
+    border-color: #dddddd;
+    color: #111111;
+}
+
+/* Fix dark mode browser autofill white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+select:-webkit-autofill {
+    -webkit-text-fill-color: var(--text-primary) !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0b0d14 inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+[data-theme="light"] input:-webkit-autofill,
+[data-theme="light"] input:-webkit-autofill:hover, 
+[data-theme="light"] input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #111111 !important;
+    -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+}
+
+
