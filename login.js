@@ -244,8 +244,8 @@ loginForm?.addEventListener('submit', async (e) => {
             loggedInAt: Date.now()
         }));
 
-        showAlert(`🔥 Welcome back, ${profile.ign}! Redirecting to leaderboard...`, false);
-        setTimeout(() => { window.location.href = 'index.html'; }, 900);
+        showAlert(`🔥 Welcome back, ${profile.ign}! Opening your player profile...`, false);
+        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
         return;
     }
 
@@ -265,8 +265,8 @@ loginForm?.addEventListener('submit', async (e) => {
             loggedInAt: Date.now()
         };
         localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(demoUser));
-        showAlert(`⚡ Demo login successful! Welcome, ${demoUser.ign}!`, false);
-        setTimeout(() => { window.location.href = 'index.html'; }, 900);
+        showAlert(`⚡ Demo login successful! Opening ${demoUser.ign}'s profile...`, false);
+        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
         return;
     }
 
@@ -321,8 +321,8 @@ async function handleGoogleAuth() {
             loggedInAt: Date.now()
         }));
 
-        showAlert(`🎉 Google Login Successful! Welcome ${profile.ign}!`, false);
-        setTimeout(() => { window.location.href = 'index.html'; }, 900);
+        showAlert(`🎉 Google Login Successful! Opening ${profile.ign}'s profile...`, false);
+        setTimeout(() => { window.location.href = 'index.html?action=profile'; }, 900);
     } catch (err) {
         console.error('Google Sign-In Error:', err);
         showAlert(formatAuthError(err));
@@ -355,7 +355,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         const active = localStorage.getItem(CURRENT_USER_KEY);
         const name = user.displayName || (active ? JSON.parse(active).ign : user.email);
-        showAlert(`Active Session: Logged in as <strong>${name}</strong>. <a href="index.html" style="color:var(--accent-red);font-weight:700;margin-left:8px;">Go to Leaderboard →</a>`, false);
+        showAlert(`Active Session: Logged in as <strong>${name}</strong>. <a href="index.html?action=profile" style="color:var(--accent-red);font-weight:700;margin-left:8px;">View Profile &amp; Submit Details →</a>`, false);
     }
 });
 

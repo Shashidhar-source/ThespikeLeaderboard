@@ -494,26 +494,57 @@ recordCharInput?.addEventListener('change', () => {
     updateProfileAvatarPreview(recordCharInput.value, recordIgnInput?.value);
 });
 
+function handleProfileOrSubmitClick() {
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    if (raw) {
+        try {
+            const user = JSON.parse(raw);
+            openRecordSubmissionModal(user);
+            return;
+        } catch (e) {}
+    }
+    openRecordSubmissionModal(null);
+}
+
+// Hook up all Profile and Submit buttons across page
+document.getElementById('heroProfileBtn')?.addEventListener('click', handleProfileOrSubmitClick);
+document.getElementById('filterBarSubmitBtn')?.addEventListener('click', handleProfileOrSubmitClick);
+document.getElementById('floatingProfileBtn')?.addEventListener('click', handleProfileOrSubmitClick);
+
 function checkUserSession() {
     try {
         const raw = localStorage.getItem(CURRENT_USER_KEY);
         const navSlot = document.getElementById('userNavSlot');
-        if (!navSlot) return;
+        const heroBtnText = document.getElementById('heroBtnText');
+        const filterBtn = document.getElementById('filterBarSubmitBtn');
+        const floatingBtn = document.getElementById('floatingProfileBtn');
 
         if (raw) {
             const user = JSON.parse(raw);
-            navSlot.innerHTML = `
-                <div class="user-session-bar">
-                    <div class="logged-in-badge">
-                        <span class="user-ball">🏐</span>
-                        <span class="user-ign">${user.ign || 'Player'}</span>
+            if (navSlot) {
+                navSlot.innerHTML = `
+                    <div class="user-session-bar">
+                        <div class="logged-in-badge" title="UID: ${user.uid || 'N/A'}">
+                            <span class="user-ball">🏐</span>
+                            <span class="user-ign">${user.ign || 'Player'}</span>
+                        </div>
+                        <button class="record-nav-btn" id="openRecordModalNavBtn">
+                            👤 My Profile &amp; Submit
+                        </button>
+                        <button class="logout-btn" id="logoutBtn" title="Log out">✕</button>
                     </div>
-                    <button class="action-btn record-nav-btn" id="openRecordModalNavBtn">
-                        👤 Profile &amp; Submit Details
-                    </button>
-                    <button class="logout-btn" id="logoutBtn" title="Log out">✕</button>
-                </div>
-            `;
+                `;
+            }
+
+            if (heroBtnText) {
+                heroBtnText.textContent = `👤 MY PROFILE (${user.ign}) & SUBMIT RECORD`;
+            }
+            if (filterBtn) {
+                filterBtn.innerHTML = `<span>⚡</span> My Profile &amp; Record (${user.ign})`;
+            }
+            if (floatingBtn) {
+                floatingBtn.innerHTML = `<span class="btn-fire">⚡</span><span class="btn-text">👤 ${user.ign} · PROFILE</span>`;
+            }
 
             document.getElementById('openRecordModalNavBtn')?.addEventListener('click', () => {
                 openRecordSubmissionModal(user);
@@ -528,9 +559,26 @@ function checkUserSession() {
                 showToast('Logged out of Spike Cross account.');
             });
         } else {
-            navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login / Sign In</a>`;
+            if (navSlot) {
+                navSlot.innerHTML = `
+                    <button class="record-nav-btn" id="navOpenSubmitBtn">👤 My Profile / Submit</button>
+                    <a href="login.html" class="nav-login-btn">⚡ Sign In</a>
+                `;
+                document.getElementById('navOpenSubmitBtn')?.addEventListener('click', handleProfileOrSubmitClick);
+            }
+            if (heroBtnText) {
+                heroBtnText.textContent = 'MY PROFILE & SUBMIT RECORD';
+            }
+            if (filterBtn) {
+                filterBtn.innerHTML = '<span>⚡</span> Submit / View Profile';
+            }
+            if (floatingBtn) {
+                floatingBtn.innerHTML = '<span class="btn-fire">⚡</span><span class="btn-text">MY PROFILE &amp; SUBMIT</span>';
+            }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('Session check error:', e);
+    }
 }
 
 // Sync Firebase Auth state changes
@@ -549,26 +597,68 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-function openRecordSubmissionModal(user) {
+function openRecordSubmissionModal(user = null) {
     if (!recordModal) return;
-    if (modalLoggedUser) modalLoggedUser.textContent = user.ign || 'Player';
 
-    // Prefill existing player record if available
-    const existing = allPlayers.find(p => p.tag.toLowerCase() === (user.ign || '').toLowerCase());
+    const raw = localStorage.getItem(CURRENT_USER_KEY);
+    const activeUser = user || (raw ? JSON.parse(raw) : null);
+    const statusStrip = document.getElementById('profileStatusStrip');
 
-    if (recordIgnInput)   recordIgnInput.value   = user.ign || (existing ? existing.tag : '');
-    if (recordUidInput)   recordUidInput.value   = user.uid || (existing ? existing.uid : '');
-    if (recordCharInput)  recordCharInput.value  = existing ? existing.character : (user.character || 'BLACK THUNDER NISHIKAWA');
-    if (recordSpeedInput) recordSpeedInput.value = existing ? existing.speed : (user.speed || '');
-    if (recordSetupInput) recordSetupInput.value = existing ? existing.setup : (user.setup || 'Power 120 / Jump 120');
-    if (recordStateInput) recordStateInput.value = existing ? existing.state : (user.state || user.region || '');
-    if (recordCityInput)  recordCityInput.value  = existing ? existing.city : (user.city || '');
-    if (recordProofInput) recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (user.proof && user.proof !== '#' ? user.proof : '');
+    if (modalLoggedUser) {
+        modalLoggedUser.textContent = activeUser ? (activeUser.ign || 'Player') : 'Guest Player';
+    }
+
+    // Prefill existing player record if available from leaderboard list
+    let existing = null;
+    if (activeUser && activeUser.ign) {
+        existing = allPlayers.find(p => p.tag.toLowerCase() === activeUser.ign.toLowerCase());
+    }
+
+    if (recordIgnInput)   recordIgnInput.value   = activeUser ? (activeUser.ign || '') : '';
+    if (recordUidInput)   recordUidInput.value   = activeUser ? (activeUser.uid || '') : (existing ? existing.uid : '');
+    if (recordCharInput)  recordCharInput.value  = existing ? existing.character : (activeUser?.character || 'BLACK THUNDER NISHIKAWA');
+    if (recordSpeedInput) recordSpeedInput.value = existing ? existing.speed : (activeUser?.speed || '');
+    if (recordSetupInput) recordSetupInput.value = existing ? existing.setup : (activeUser?.setup || 'Power 120 / Jump 120');
+    if (recordStateInput) recordStateInput.value = existing ? existing.state : (activeUser?.state || activeUser?.region || '');
+    if (recordCityInput)  recordCityInput.value  = existing ? existing.city : (activeUser?.city || '');
+    if (recordProofInput) recordProofInput.value = existing && existing.proof !== '#' ? existing.proof : (activeUser?.proof && activeUser.proof !== '#' ? activeUser.proof : '');
+
+    // Configure profile status banner
+    if (statusStrip) {
+        if (activeUser && activeUser.ign) {
+            const pIdx = allPlayers.findIndex(p => p.tag.toLowerCase() === activeUser.ign.toLowerCase());
+            const rankHtml = pIdx >= 0 
+                ? `<span class="rank-pill">🏆 Leaderboard Rank: #${pIdx + 1} (${allPlayers[pIdx].speed} KM/H)</span>`
+                : `<span class="rank-pill">⚡ Unranked (Enter speed to rank!)</span>`;
+
+            statusStrip.innerHTML = `
+                <div>
+                    <strong>👤 Spike Cross Profile:</strong> 
+                    <span style="color:var(--accent-red);font-weight:800;font-size:15px;margin-left:4px;">${activeUser.ign}</span>
+                    <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">(UID: ${activeUser.uid || 'Pending'})</span>
+                </div>
+                ${rankHtml}
+            `;
+        } else {
+            statusStrip.innerHTML = `
+                <div>
+                    <strong>⚡ Spike Cross Player Details:</strong> Enter your details below to position your record on the leaderboard.
+                </div>
+                <div>
+                    <a href="login.html?redirect=profile" style="color:var(--accent-red);font-weight:700;text-decoration:underline;">Sign In with Account →</a>
+                </div>
+            `;
+        }
+    }
 
     updateProfileAvatarPreview(recordCharInput?.value, recordIgnInput?.value);
     triggerLinkInspection(recordProofInput?.value || '');
     recordModal.style.display = 'flex';
-    recordSpeedInput?.focus();
+    if (!recordIgnInput?.value) {
+        recordIgnInput?.focus();
+    } else {
+        recordSpeedInput?.focus();
+    }
 }
 
 function closeRecordModal() {
@@ -614,14 +704,10 @@ recordForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const rawUser = localStorage.getItem(CURRENT_USER_KEY);
-    if (!rawUser) {
-        alert('Please log in with your Spike Cross account to submit details.');
-        return;
-    }
-    const user = JSON.parse(rawUser);
+    let user = rawUser ? JSON.parse(rawUser) : null;
 
-    const ign       = recordIgnInput ? recordIgnInput.value.trim() : user.ign;
-    const uid       = recordUidInput ? recordUidInput.value.trim() : (user.uid || '');
+    const ign       = recordIgnInput ? recordIgnInput.value.trim() : (user ? user.ign : '');
+    const uid       = recordUidInput ? recordUidInput.value.trim() : (user ? user.uid : '');
     const speed     = parseInt(recordSpeedInput.value) || 0;
     const character = recordCharInput.value;
     const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
@@ -630,7 +716,7 @@ recordForm?.addEventListener('submit', async (e) => {
     const proof     = recordProofInput.value.trim();
 
     if (!ign || !uid) {
-        alert('Please enter your In-Game Name and Spike Cross UID.');
+        alert('Please enter your Spike Cross In-Game Name (IGN) and UID.');
         return;
     }
 
@@ -660,7 +746,7 @@ recordForm?.addEventListener('submit', async (e) => {
     };
 
     const updatedUser = {
-        ...user,
+        ...(user || {}),
         ign,
         uid,
         character,
@@ -675,13 +761,13 @@ recordForm?.addEventListener('submit', async (e) => {
 
     // 1. Save to Firebase Firestore
     try {
-        const userDocId = user.firebaseUid || ign.toLowerCase();
+        const userDocId = (user && user.firebaseUid) ? user.firebaseUid : ign.toLowerCase();
         await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
         await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-            email: user.email || '',
+            email: (user && user.email) ? user.email : '',
             ign,
             uid,
-            firebaseUid: user.firebaseUid || ''
+            firebaseUid: (user && user.firebaseUid) ? user.firebaseUid : ''
         }, { merge: true });
 
         // If player has speed record, push to "players" leaderboard collection
@@ -696,8 +782,8 @@ recordForm?.addEventListener('submit', async (e) => {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
 
     if (speed > 0) {
-        const oldIgn = (user.ign || '').toUpperCase();
-        const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase() || p.tag.toUpperCase() === oldIgn);
+        const oldIgn = user ? (user.ign || '').toUpperCase() : '';
+        const existingIdx = allPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase() || (oldIgn && p.tag.toUpperCase() === oldIgn));
         if (existingIdx >= 0) {
             allPlayers[existingIdx] = recordData;
         } else {
@@ -722,7 +808,6 @@ recordForm?.addEventListener('submit', async (e) => {
     }
 });
 
-
 // Toast helper
 let toastTimer = null;
 function showToast(msg, type = '') {
@@ -740,4 +825,17 @@ function showToast(msg, type = '') {
 window.addEventListener('DOMContentLoaded', () => {
     checkUserSession();
     initFirebaseLeaderboard();
+
+    // Check if redirected with action=profile or submit=1
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'profile' || urlParams.get('submit') === '1') {
+        setTimeout(() => {
+            handleProfileOrSubmitClick();
+        }, 350);
+        // Clean up URL without reload
+        try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {}
+    }
 });
+

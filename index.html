@@ -34,10 +34,12 @@
                 <nav class="top-nav">
                     <a href="#leaderboard-section">Leaderboard</a>
                     <a href="#about-section">About</a>
-                    <span id="userNavSlot"><a href="login.html" class="nav-login-btn">Login</a></span>
                     <a href="admin.html" class="admin-link">⚙ Admin</a>
                 </nav>
-                <div class="game-badge">THE SPIKE CROSS</div>
+                <div class="header-user-area">
+                    <span id="userNavSlot"><a href="login.html" class="nav-login-btn">⚡ Profile / Login</a></span>
+                    <div class="game-badge">THE SPIKE CROSS</div>
+                </div>
             </div>
 
             <!-- HERO SECTION -->
@@ -86,6 +88,17 @@
                     <h2 class="hero-subtitle">IN INDIA</h2>
                     <div class="tricolor-bar"></div>
                     <p class="hero-tagline">INDIA'S OFFICIAL SPIKE CROSS SPEED LEADERBOARD</p>
+                    
+                    <!-- HERO ACTION CTA BUTTONS -->
+                    <div class="hero-cta-wrapper">
+                        <button class="hero-main-btn" id="heroProfileBtn">
+                            <span class="btn-fire">⚡</span>
+                            <span id="heroBtnText">MY PROFILE &amp; SUBMIT RECORD</span>
+                        </button>
+                        <a href="#leaderboard-section" class="hero-sub-btn">
+                            <span>🏆</span> BROWSE RANKS
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Speed stats strip -->
@@ -143,7 +156,11 @@
                     <input type="text" id="searchInput" placeholder="Search player tag..." />
                 </div>
                 <div class="filter-group">
+                    <button class="filter-submit-btn" id="filterBarSubmitBtn">
+                        <span>⚡</span> Submit / View Profile
+                    </button>
                     <select id="charFilter">
+
                         <option value="">All Characters</option>
                         <option value="Nishikawa">Nishikawa</option>
                         <option value="Oasis">Oasis</option>
@@ -250,6 +267,11 @@
                     <div class="record-modal-badge">👤 PLAYER PROFILE &amp; RECORD SUBMISSION</div>
                     <h3>SPIKE CROSS PLAYER DETAILS</h3>
                     <button class="modal-close" id="closeRecordModalBtn">&times;</button>
+                </div>
+
+                <!-- PROFILE STATUS & RANK STRIP -->
+                <div class="profile-status-strip" id="profileStatusStrip">
+                    <!-- Populated dynamically: session & leaderboard rank -->
                 </div>
 
                 <p class="modal-intro">
@@ -365,6 +387,12 @@
 
         <!-- NOTIFICATION TOAST -->
         <div id="toast" class="admin-toast"></div>
+
+        <!-- FLOATING QUICK ACTION: MY PROFILE & SUBMIT RECORD -->
+        <button class="floating-profile-btn" id="floatingProfileBtn" title="View Profile & Submit Speed">
+            <span class="btn-fire">⚡</span>
+            <span class="btn-text">MY PROFILE &amp; SUBMIT</span>
+        </button>
 
     </div>
 
