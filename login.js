@@ -134,7 +134,11 @@ document.querySelectorAll('.pwd-toggle').forEach(btn => {
 // ── ALERTS & ERROR TRANSLATION ──────────────────────────────
 function showAlert(msg, isError = true) {
     if (!authAlert) return;
-    authAlert.innerHTML = msg;
+    let clean = (msg || '').toString()
+        .replace(/^Firebase:\s*(Error\s*)?/i, '')
+        .replace(/\(auth\/[a-z0-9-]+\)\.?/i, '')
+        .trim();
+    authAlert.innerHTML = clean;
     authAlert.className = `auth-alert ${isError ? 'error' : 'success'}`;
     authAlert.style.display = 'block';
 }
@@ -147,31 +151,44 @@ function clearAlert() {
 }
 
 function formatAuthError(err) {
-    console.error('Firebase Auth Error:', err);
+    console.error('Authentication Error:', err);
     const code = err?.code || '';
+    const currentHost = window.location.hostname || 'this domain';
+
     switch (code) {
+        case 'auth/unauthorized-domain':
+            return `Error: Domain "${currentHost}" is not authorized for Google Sign-In yet. Please add "${currentHost}" in Firebase Console ➔ Authentication ➔ Settings ➔ Authorized Domains.`;
         case 'auth/invalid-email':
-            return 'Invalid email address format.';
+            return 'Error: Invalid email address format.';
         case 'auth/user-disabled':
-            return 'This account has been disabled. Contact support.';
+            return 'Error: This account has been disabled. Contact support.';
         case 'auth/user-not-found':
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-            return 'Invalid login credentials. Please check your email/IGN and password.';
+            return 'Error: Invalid login credentials. Please check your username/email and password.';
         case 'auth/email-already-in-use':
-            return 'This email is already in use. Please sign in or use another email.';
+            return 'Error: This email is already registered. Please sign in instead.';
         case 'auth/weak-password':
-            return 'Password is too weak. Please use at least 6 characters.';
+            return 'Error: Password is too weak. Please use at least 6 characters.';
         case 'auth/operation-not-allowed':
-            return '⚠️ Email/Password sign-in is not enabled in Firebase Console. Go to Firebase Console ➔ Authentication ➔ Sign-in method to enable it.';
+            return 'Error: This sign-in method is not enabled. Please enable it in project settings.';
         case 'auth/popup-closed-by-user':
-            return 'Google Sign-In popup was closed before completion.';
+        case 'auth/cancelled-popup-request':
+            return 'Error: Google Sign-In popup was closed before completion.';
         case 'auth/popup-blocked':
-            return 'Popup was blocked by your browser. Please allow popups for this site.';
-        default:
-            return err?.message || 'Authentication error. Please try again.';
+            return 'Error: Google Sign-In popup was blocked by your browser. Please allow popups for this site.';
+        case 'auth/network-request-failed':
+            return 'Error: Network connection problem. Please check your connection and try again.';
+        case 'auth/account-exists-with-different-credential':
+            return 'Error: An account already exists with this email using a different sign-in method.';
+        default: {
+            let msg = err?.message || 'Authentication failed. Please try again.';
+            msg = msg.replace(/^Firebase:\s*(Error\s*)?/i, '').replace(/\(auth\/[a-z0-9-]+\)\.?/i, '').trim();
+            return `Error: ${msg}`;
+        }
     }
 }
+
 
 // ── LIVE PROOF LINK INSPECTION ──────────────────────────────
 const regProofInput    = document.getElementById('regProof');
@@ -248,7 +265,8 @@ registerForm?.addEventListener('submit', async (e) => {
 
     const regBtn = document.getElementById('registerBtn');
     if (regBtn) regBtn.disabled = true;
-    showAlert('Creating official Spike Cross Firebase account...', false);
+    showAlert('Creating your official Spike Cross account...', false);
+
 
     let authUser = null;
 
@@ -347,7 +365,8 @@ registerForm?.addEventListener('submit', async (e) => {
     } catch (e) {}
 
     if (regBtn) regBtn.disabled = false;
-    showAlert(`🎉 Spike Cross account "${ign}" registered with Firebase! Redirecting to leaderboard...`, false);
+    showAlert(`🎉 Spike Cross account "${ign}" registered! Redirecting to leaderboard...`, false);
+
 
     setTimeout(() => {
         window.location.href = 'index.html';
@@ -369,7 +388,8 @@ loginForm?.addEventListener('submit', async (e) => {
     }
 
     if (loginBtn) loginBtn.disabled = true;
-    showAlert('Authenticating with Firebase...', false);
+    showAlert('Authenticating...', false);
+
 
     let emailToAuth = identifier;
 
@@ -462,7 +482,8 @@ loginForm?.addEventListener('submit', async (e) => {
 // ── GOOGLE AUTHENTICATION HANDLER ────────────────────────────
 async function handleGoogleAuth() {
     clearAlert();
-    showAlert('Connecting to Google Account via Firebase...', false);
+    showAlert('Connecting to Google Account...', false);
+
 
     try {
         const provider = new GoogleAuthProvider();
@@ -540,6 +561,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         const active = localStorage.getItem(CURRENT_USER_KEY);
         const name = user.displayName || (active ? JSON.parse(active).ign : user.email);
-        showAlert(`Active Firebase Session: Logged in as <strong>${name}</strong>. <a href="index.html" style="color:var(--accent-red);font-weight:700;margin-left:8px;">Go to Leaderboard →</a>`, false);
+        showAlert(`Active Session: Logged in as <strong>${name}</strong>. <a href="index.html" style="color:var(--accent-red);font-weight:700;margin-left:8px;">Go to Leaderboard →</a>`, false);
     }
 });
+
