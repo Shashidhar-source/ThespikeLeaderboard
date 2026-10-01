@@ -6,6 +6,9 @@
 
 import { 
     db, 
+    auth,
+    signOut,
+    onAuthStateChanged,
     collection, 
     doc, 
     setDoc, 
@@ -15,6 +18,7 @@ import {
     orderBy, 
     inspectProofLink 
 } from "./firebase-config.js";
+
 
 const SPEED_SCALE_MAX = 220; // Gauge full-scale reference (0 to 220 km/h)
 const STORAGE_KEY     = 'spike-india-players';
@@ -493,16 +497,37 @@ function checkUserSession() {
                 openRecordSubmissionModal(user);
             });
 
-            document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                } catch (e) {}
                 localStorage.removeItem(CURRENT_USER_KEY);
                 checkUserSession();
-                showToast('Logged out.');
+                showToast('Logged out of Spike Cross account.');
             });
         } else {
             navSlot.innerHTML = `<a href="login.html" class="nav-login-btn">Login / Register</a>`;
         }
     } catch (e) {}
 }
+
+// Sync Firebase Auth state changes
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        // If not logged into Firebase Auth and was using Firebase session, clean up
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed.firebaseUid && !parsed.isDemo) {
+                localStorage.removeItem(CURRENT_USER_KEY);
+                checkUserSession();
+            }
+        }
+    } else {
+        checkUserSession();
+    }
+});
+
 
 function openRecordSubmissionModal(user) {
     if (!recordModal) return;

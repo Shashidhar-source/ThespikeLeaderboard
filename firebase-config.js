@@ -19,6 +19,18 @@ import {
     serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    updateProfile,
+    sendPasswordResetEmail,
+    GoogleAuthProvider,
+    signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
 // Your Firebase web configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDakEOvBAtgeXtrm3xzPgv_jZgIH9qWWCA",
@@ -31,8 +43,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
 
 /* ── PROOF LINK INSPECTOR & FAKE DETECTOR ──────────────────────
    Inspects submitted proof links to verify whether they point to
@@ -140,6 +154,15 @@ export function inspectProofLink(urlStr) {
 export {
     app,
     db,
+    auth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    updateProfile,
+    sendPasswordResetEmail,
+    GoogleAuthProvider,
+    signInWithPopup,
     collection,
     doc,
     setDoc,
@@ -152,3 +175,4 @@ export {
     deleteDoc,
     serverTimestamp
 };
+

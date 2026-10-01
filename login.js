@@ -5,6 +5,15 @@
 
 import { 
     db, 
+    auth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    updateProfile,
+    sendPasswordResetEmail,
+    GoogleAuthProvider,
+    signInWithPopup,
     doc, 
     setDoc, 
     getDoc, 
@@ -122,7 +131,7 @@ document.querySelectorAll('.pwd-toggle').forEach(btn => {
     });
 });
 
-// ── ALERTS ──────────────────────────────────────────────────
+// ── ALERTS & ERROR TRANSLATION ──────────────────────────────
 function showAlert(msg, isError = true) {
     if (!authAlert) return;
     authAlert.innerHTML = msg;
@@ -134,6 +143,33 @@ function clearAlert() {
     if (authAlert) {
         authAlert.style.display = 'none';
         authAlert.innerHTML = '';
+    }
+}
+
+function formatAuthError(err) {
+    console.error('Firebase Auth Error:', err);
+    const code = err?.code || '';
+    switch (code) {
+        case 'auth/invalid-email':
+            return 'Invalid email address format.';
+        case 'auth/user-disabled':
+            return 'This account has been disabled. Contact support.';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+            return 'Invalid login credentials. Please check your email/IGN and password.';
+        case 'auth/email-already-in-use':
+            return 'This email is already in use. Please sign in or use another email.';
+        case 'auth/weak-password':
+            return 'Password is too weak. Please use at least 6 characters.';
+        case 'auth/operation-not-allowed':
+            return '⚠️ Email/Password sign-in is not enabled in Firebase Console. Go to Firebase Console ➔ Authentication ➔ Sign-in method to enable it.';
+        case 'auth/popup-closed-by-user':
+            return 'Google Sign-In popup was closed before completion.';
+        case 'auth/popup-blocked':
+            return 'Popup was blocked by your browser. Please allow popups for this site.';
+        default:
+            return err?.message || 'Authentication error. Please try again.';
     }
 }
 
@@ -165,7 +201,7 @@ regProofInput?.addEventListener('input', () => {
     }
 });
 
-// ── REGISTRATION HANDLER (FIREBASE + LOCAL SYNC) ────────────
+// ── REGISTRATION HANDLER (FIREBASE AUTH + FIRESTORE) ────────
 registerForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
@@ -212,9 +248,30 @@ registerForm?.addEventListener('submit', async (e) => {
 
     const regBtn = document.getElementById('registerBtn');
     if (regBtn) regBtn.disabled = true;
-    showAlert('Saving profile to Firebase Cloud...', false);
+    showAlert('Creating official Spike Cross Firebase account...', false);
 
-    const newUser = {
+    let authUser = null;
+
+    try {
+        // 1. Create account in Firebase Authentication
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        authUser = cred.user;
+
+        // Set display name to player IGN
+        try {
+            await updateProfile(authUser, { displayName: ign });
+        } catch (profileErr) {
+            console.warn('Profile name update note:', profileErr);
+        }
+    } catch (authErr) {
+        console.warn('Firebase Auth registration note:', authErr);
+        // If operation not allowed, give clear hint, else show error
+        showAlert(formatAuthError(authErr));
+        if (regBtn) regBtn.disabled = false;
+        return;
+    }
+
+    const userData = {
         ign,
         uid,
         email,
@@ -222,15 +279,25 @@ registerForm?.addEventListener('submit', async (e) => {
         character,
         speed: speed || 0,
         proof,
-        password,
+        firebaseUid: authUser?.uid || '',
         registeredAt: new Date().toISOString()
     };
 
+    // 2. Save Profile in Firestore
     try {
-        // Save to Firebase Firestore "users" collection
-        await setDoc(doc(db, "users", ign.toLowerCase()), newUser);
+        // Store in users collection by Firebase Auth UID
+        if (authUser?.uid) {
+            await setDoc(doc(db, "users", authUser.uid), userData, { merge: true });
+        }
+        // Also map by IGN for quick lookups
+        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
+            email,
+            ign,
+            uid,
+            firebaseUid: authUser?.uid || ''
+        }, { merge: true });
 
-        // If a speed record was given, also push to "players" leaderboard collection
+        // If a speed record was given, publish to Firestore "players" leaderboard
         if (speed > 0) {
             await setDoc(doc(db, "players", ign.toUpperCase()), {
                 tag: ign,
@@ -242,32 +309,37 @@ registerForm?.addEventListener('submit', async (e) => {
                 proof,
                 uid,
                 updatedAt: new Date().toISOString()
-            });
+            }, { merge: true });
         }
-    } catch (fbErr) {
-        console.warn('Firebase sync note (using local cache as fallback):', fbErr);
+    } catch (dbErr) {
+        console.warn('Firestore database save notice (fallback active):', dbErr);
     }
 
-    // Also persist locally
+    // 3. Save to Local Session
     try {
+        const sessionData = {
+            ign,
+            uid,
+            email,
+            character,
+            region,
+            speed: speed || 0,
+            proof,
+            firebaseUid: authUser?.uid || '',
+            loggedInAt: Date.now()
+        };
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(sessionData));
+
+        // Sync local cache of users
         const localUsers = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-        localUsers.push(newUser);
+        localUsers.push(userData);
         localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(localUsers));
 
-        // If player has speed, also update local players list
         if (speed > 0) {
             const localPlayers = JSON.parse(localStorage.getItem(PLAYERS_STORAGE) || '[]');
-            const existingIdx = localPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase());
-            const pData = {
-                tag: ign,
-                speed,
-                character,
-                setup: 'Power 120 / Jump 120',
-                state: region,
-                city: region,
-                proof
-            };
-            if (existingIdx >= 0) localPlayers[existingIdx] = pData;
+            const idx = localPlayers.findIndex(p => p.tag.toUpperCase() === ign.toUpperCase());
+            const pData = { tag: ign, speed, character, setup: 'Power 120 / Jump 120', state: region, city: region, proof };
+            if (idx >= 0) localPlayers[idx] = pData;
             else localPlayers.push(pData);
             localPlayers.sort((a, b) => b.speed - a.speed);
             localStorage.setItem(PLAYERS_STORAGE, JSON.stringify(localPlayers));
@@ -275,115 +347,199 @@ registerForm?.addEventListener('submit', async (e) => {
     } catch (e) {}
 
     if (regBtn) regBtn.disabled = false;
-    showAlert(`🎉 Success! Spike Cross account "${ign}" created and synced to Firebase. Switching to login...`, false);
+    showAlert(`🎉 Spike Cross account "${ign}" registered with Firebase! Redirecting to leaderboard...`, false);
 
     setTimeout(() => {
-        tabLogin.click();
-        const idField = document.getElementById('loginIdentifier');
-        if (idField) idField.value = ign;
-        const pwdField = document.getElementById('loginPassword');
-        if (pwdField) pwdField.focus();
-    }, 1400);
+        window.location.href = 'index.html';
+    }, 1200);
 });
 
-// ── LOGIN HANDLER (FIREBASE + LOCAL CACHE) ───────────────────
+// ── LOGIN HANDLER (FIREBASE AUTH EMAIL/PASSWORD) ─────────────
 loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
 
-    const identifier = document.getElementById('loginIdentifier')?.value.trim().toLowerCase();
+    const identifier = document.getElementById('loginIdentifier')?.value.trim();
     const password   = document.getElementById('loginPassword')?.value;
     const loginBtn   = document.getElementById('loginBtn');
 
     if (!identifier || !password) {
-        showAlert('Please enter your IGN/Email and password.');
+        showAlert('Please enter your IGN or Email, and password.');
         return;
     }
 
     if (loginBtn) loginBtn.disabled = true;
     showAlert('Authenticating with Firebase...', false);
 
-    let matchedUser = null;
+    let emailToAuth = identifier;
 
-    // 1. Try Firebase Firestore
-    try {
-        const userDoc = await getDoc(doc(db, "users", identifier));
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            if (data.password === password) {
-                matchedUser = data;
-            }
-        } else {
-            // Also search by email
-            const snap = await getDocs(collection(db, "users"));
-            snap.forEach(d => {
-                const u = d.data();
-                if ((u.email?.toLowerCase() === identifier || u.ign?.toLowerCase() === identifier) && u.password === password) {
-                    matchedUser = u;
-                }
-            });
-        }
-    } catch (fbErr) {
-        console.warn('Firebase query fallback:', fbErr);
-    }
-
-    // 2. Fallback to local storage
-    if (!matchedUser) {
+    // If identifier is not an email, lookup user email in Firestore
+    if (!identifier.includes('@')) {
         try {
-            const raw = localStorage.getItem(USERS_STORAGE_KEY);
-            const users = raw ? JSON.parse(raw) : [];
-            matchedUser = users.find(u => 
-                (u.ign.toLowerCase() === identifier || u.email.toLowerCase() === identifier) && 
-                u.password === password
-            );
-        } catch (e) {}
+            const ignDoc = await getDoc(doc(db, "users_by_ign", identifier.toLowerCase()));
+            if (ignDoc.exists()) {
+                emailToAuth = ignDoc.data().email || identifier;
+            } else {
+                // Search users collection
+                const snap = await getDocs(collection(db, "users"));
+                snap.forEach(d => {
+                    const u = d.data();
+                    if (u.ign?.toLowerCase() === identifier.toLowerCase() && u.email) {
+                        emailToAuth = u.email;
+                    }
+                });
+            }
+        } catch (lookupErr) {
+            console.warn('IGN lookup notice:', lookupErr);
+        }
     }
 
-    // 3. Demo / built-in test account
-    if (!matchedUser && (identifier === 'spikemaster' || identifier === 'demo') && password === 'spike123') {
-        matchedUser = {
-            ign: 'SPIKE_MASTER10',
-            uid: 'SC-100001',
-            email: 'spikemaster@spikecross.in',
-            region: 'Karnataka',
+    let authUser = null;
+    let authError = null;
+
+    try {
+        const cred = await signInWithEmailAndPassword(auth, emailToAuth, password);
+        authUser = cred.user;
+    } catch (err) {
+        authError = err;
+    }
+
+    // If Firebase Auth succeeded
+    if (authUser) {
+        let profile = {
+            ign: authUser.displayName || identifier,
+            email: authUser.email,
+            uid: 'SC-' + Math.floor(100000 + Math.random() * 900000),
             character: 'BLACK THUNDER NISHIKAWA',
-            speed: 198,
-            proof: 'https://youtube.com/shorts/demo'
+            region: 'India',
+            speed: 0,
+            proof: '#',
+            firebaseUid: authUser.uid
         };
-    }
 
-    if (loginBtn) loginBtn.disabled = false;
+        // Fetch detailed profile from Firestore
+        try {
+            const pDoc = await getDoc(doc(db, "users", authUser.uid));
+            if (pDoc.exists()) {
+                profile = { ...profile, ...pDoc.data() };
+            }
+        } catch (e) {}
 
-    if (!matchedUser) {
-        showAlert('Invalid credentials. Check your IGN/Email and password or register a new Spike Cross account.');
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
+            ...profile,
+            loggedInAt: Date.now()
+        }));
+
+        showAlert(`🔥 Welcome back, ${profile.ign}! Redirecting to leaderboard...`, false);
+        setTimeout(() => { window.location.href = 'index.html'; }, 900);
         return;
     }
 
-    // Set current active session
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
-        ign: matchedUser.ign,
-        uid: matchedUser.uid,
-        character: matchedUser.character,
-        region: matchedUser.region,
-        speed: matchedUser.speed || 0,
-        proof: matchedUser.proof || '#',
-        loggedInAt: Date.now()
-    }));
+    // If Firebase Auth returned error, check if demo account or fallback
+    if (loginBtn) loginBtn.disabled = false;
 
-    showAlert(`🔥 Welcome back, ${matchedUser.ign}! Redirecting to leaderboard...`, false);
+    // Demo account fallback for instant testing
+    if ((identifier.toLowerCase() === 'spikemaster' || identifier.toLowerCase() === 'demo') && password === 'spike123') {
+        const demoUser = {
+            ign: 'SPIKE_MASTER10',
+            uid: 'SC-100001',
+            email: 'spikemaster@thespike.in',
+            region: 'Karnataka',
+            character: 'BLACK THUNDER NISHIKAWA',
+            speed: 198,
+            proof: 'https://youtube.com/shorts/demo',
+            loggedInAt: Date.now()
+        };
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(demoUser));
+        showAlert(`⚡ Demo login successful! Welcome, ${demoUser.ign}!`, false);
+        setTimeout(() => { window.location.href = 'index.html'; }, 900);
+        return;
+    }
 
-    setTimeout(() => {
-        window.location.href = 'index.html';
-    }, 1000);
+    showAlert(formatAuthError(authError));
 });
 
-// Check if currently active session
-window.addEventListener('DOMContentLoaded', () => {
+// ── GOOGLE AUTHENTICATION HANDLER ────────────────────────────
+async function handleGoogleAuth() {
+    clearAlert();
+    showAlert('Connecting to Google Account via Firebase...', false);
+
     try {
-        const active = localStorage.getItem(CURRENT_USER_KEY);
-        if (active) {
-            const user = JSON.parse(active);
-            showAlert(`Logged in as <strong>${user.ign}</strong>. You can switch accounts or <a href="index.html" style="color:var(--accent-red);font-weight:700;">Go to Leaderboard →</a>`, false);
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const res = await signInWithPopup(auth, provider);
+        const user = res.user;
+
+        const ign = user.displayName || user.email.split('@')[0];
+        let profile = {
+            ign,
+            email: user.email,
+            uid: 'SC-' + Math.floor(100000 + Math.random() * 900000),
+            character: 'BLACK THUNDER NISHIKAWA',
+            region: 'India',
+            speed: 0,
+            proof: '#',
+            firebaseUid: user.uid
+        };
+
+        // Try getting existing profile from Firestore
+        try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                profile = { ...profile, ...userDoc.data() };
+            } else {
+                // Initialize default profile
+                await setDoc(doc(db, "users", user.uid), profile, { merge: true });
+                await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
+                    email: user.email,
+                    ign,
+                    uid: profile.uid,
+                    firebaseUid: user.uid
+                }, { merge: true });
+            }
+        } catch (dbErr) {
+            console.warn('Google auth Firestore note:', dbErr);
         }
-    } catch (e) {}
+
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({
+            ...profile,
+            loggedInAt: Date.now()
+        }));
+
+        showAlert(`🎉 Google Login Successful! Welcome ${profile.ign}!`, false);
+        setTimeout(() => { window.location.href = 'index.html'; }, 900);
+    } catch (err) {
+        console.error('Google Sign-In Error:', err);
+        showAlert(formatAuthError(err));
+    }
+}
+
+document.getElementById('googleLoginBtn')?.addEventListener('click', handleGoogleAuth);
+document.getElementById('googleRegBtn')?.addEventListener('click', handleGoogleAuth);
+
+// ── FORGOT PASSWORD HANDLER ──────────────────────────────────
+document.getElementById('forgotPassLink')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    clearAlert();
+
+    const email = prompt('Enter your registered Spike Cross email address:');
+    if (!email || !email.trim()) return;
+
+    showAlert('Sending password reset email...', false);
+
+    try {
+        await sendPasswordResetEmail(auth, email.trim());
+        showAlert(`📩 Password reset link sent to <strong>${email.trim()}</strong>! Check your inbox.`, false);
+    } catch (err) {
+        showAlert(formatAuthError(err));
+    }
+});
+
+// ── SYNC FIREBASE AUTH STATE ON PAGE LOAD ────────────────────
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const active = localStorage.getItem(CURRENT_USER_KEY);
+        const name = user.displayName || (active ? JSON.parse(active).ign : user.email);
+        showAlert(`Active Firebase Session: Logged in as <strong>${name}</strong>. <a href="index.html" style="color:var(--accent-red);font-weight:700;margin-left:8px;">Go to Leaderboard →</a>`, false);
+    }
 });
