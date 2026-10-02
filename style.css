@@ -2130,6 +2130,96 @@ select:-webkit-autofill {
     display: block;
 }
 
+/* Character Record Status Badge & Multi-Character Hints */
+.char-record-badge {
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 8px 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    transition: all 0.25s ease;
+}
+
+.char-record-badge.has-record {
+    background: rgba(255, 170, 0, 0.08);
+    border: 1px solid rgba(255, 170, 0, 0.35);
+    color: #ffc107;
+}
+
+[data-theme="light"] .char-record-badge.has-record {
+    background: #fff8e1;
+    border-color: #ffb300;
+    color: #b7791f;
+}
+
+.char-record-badge.no-record {
+    background: rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    color: #00e5ff;
+}
+
+[data-theme="light"] .char-record-badge.no-record {
+    background: #e1f5fe;
+    border-color: #0288d1;
+    color: #0277bd;
+}
+
+.char-record-badge-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+}
+
+.char-record-badge-sub {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.player-other-chars-list {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    font-size: 11.5px;
+}
+
+[data-theme="light"] .player-other-chars-list {
+    border-top-color: rgba(0, 0, 0, 0.12);
+}
+
+.char-mini-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.char-mini-tag:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="light"] .char-mini-tag {
+    background: #ffffff;
+    border-color: #d0d0d0;
+    color: #333333;
+}
+
+
 /* ══════════════════════════════════════════════════════════════
    HEADER USER AREA & PROFILE / LOGIN BUTTONS
    ══════════════════════════════════════════════════════════════ */

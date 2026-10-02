@@ -89,16 +89,23 @@ function safeKey(str) {
     return (str || '').trim().toUpperCase().replace(/[.#$[\]/]/g, '_');
 }
 
+export function getPlayerCloudKey(tag, character) {
+    const sTag = safeKey(tag);
+    const sChar = safeKey(character || 'BLACK_THUNDER_NISHIKAWA');
+    return `${sTag}__${sChar}`;
+}
+
 /* ── PLAYER CLOUD SYNC (RTDB) ────────────────────────────── */
 export async function savePlayerToCloud(playerData) {
     const tag = (playerData.tag || '').trim();
     if (!tag) return false;
-    const key = safeKey(tag);
+    const char = (playerData.character || 'BLACK THUNDER NISHIKAWA').trim();
+    const key = getPlayerCloudKey(tag, char);
 
     const record = {
         tag:       tag,
         speed:     parseInt(playerData.speed, 10) || 0,
-        character: playerData.character || 'BLACK THUNDER NISHIKAWA',
+        character: char,
         setup:     playerData.setup || 'Power 120 / Jump 120',
         state:     playerData.state || 'India',
         city:      playerData.city || '',
@@ -110,6 +117,8 @@ export async function savePlayerToCloud(playerData) {
     // Primary: Firebase RTDB SDK
     try {
         await set(ref(rtdb, `players/${key}`), record);
+        // Also clean up any legacy un-suffixed key to avoid duplicate ghost records
+        try { await remove(ref(rtdb, `players/${safeKey(tag)}`)); } catch(eLegacy) {}
         return true;
     } catch(e) {
         // Fallback: REST API (works without SDK permissions)
@@ -119,6 +128,9 @@ export async function savePlayerToCloud(playerData) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(record)
             });
+            try {
+                await fetch(`${RTDB_URL}/players/${encodeURIComponent(safeKey(tag))}.json`, { method: 'DELETE' });
+            } catch(eDel) {}
             return r.ok;
         } catch(e2) {
             console.warn('[RTDB] savePlayerToCloud failed:', e2);
@@ -219,11 +231,23 @@ export function subscribeToCloudLeaderboard(callback) {
     }
 }
 
-export async function deletePlayerFromCloud(tag) {
+export async function deletePlayerFromCloud(tag, character) {
     if (!tag) return false;
-    const key = safeKey(tag);
-    try { await remove(ref(rtdb, `players/${key}`)); } catch(e) {
-        try { await fetch(`${RTDB_URL}/players/${encodeURIComponent(key)}.json`, { method:'DELETE' }); } catch(e2) {}
+    const sTag = safeKey(tag);
+    const keysToDelete = [];
+    if (character) {
+        keysToDelete.push(getPlayerCloudKey(tag, character));
+    }
+    keysToDelete.push(sTag);
+
+    for (const k of keysToDelete) {
+        try {
+            await remove(ref(rtdb, `players/${k}`));
+        } catch(e) {
+            try {
+                await fetch(`${RTDB_URL}/players/${encodeURIComponent(k)}.json`, { method: 'DELETE' });
+            } catch(e2) {}
+        }
     }
     return true;
 }

@@ -167,23 +167,28 @@ async function initAdminData() {
     try {
         const cloudList = await fetchPlayersFromCloud();
         const remoteMap = new Map();
+        const getAdminKey = (item) => {
+            const t = (item.tag || '').trim().toUpperCase();
+            const c = (item.character || 'BLACK THUNDER NISHIKAWA').trim().toUpperCase();
+            return `${t}__${c}`;
+        };
+
         cloudList.forEach(data => {
             if (data && data.tag) {
-                const tagUpper = data.tag.trim().toUpperCase();
                 const sp = parseInt(data.speed, 10) || 0;
-                if (sp > 0) remoteMap.set(tagUpper, { ...data, speed: sp });
+                if (sp > 0) remoteMap.set(getAdminKey(data), { ...data, speed: sp });
             }
         });
 
         // Merge remote with current local players (preserving whichever has greater or equal speed)
         players.forEach(p => {
-            const tagUpper = (p.tag || '').trim().toUpperCase();
-            if (!remoteMap.has(tagUpper)) {
-                remoteMap.set(tagUpper, p);
+            const key = getAdminKey(p);
+            if (!remoteMap.has(key)) {
+                remoteMap.set(key, p);
             } else {
-                const remoteP = remoteMap.get(tagUpper);
+                const remoteP = remoteMap.get(key);
                 if ((p.speed || 0) > (remoteP.speed || 0)) {
-                    remoteMap.set(tagUpper, p);
+                    remoteMap.set(key, p);
                 }
             }
         });
@@ -209,9 +214,9 @@ async function savePlayerDataToFirebase(player) {
     }
 }
 
-async function deletePlayerFromFirebase(tag) {
+async function deletePlayerFromFirebase(tag, character) {
     try {
-        await deletePlayerFromCloud(tag);
+        await deletePlayerFromCloud(tag, character);
     } catch (e) {
         console.warn('Firebase delete player note:', e);
     }
@@ -586,11 +591,12 @@ playerForm?.addEventListener('submit', (e) => {
 window.deletePlayer = function(index) {
     const p = players[index];
     if (!p) return;
-    if (confirm(`Are you sure you want to remove ${p.tag} (${p.speed} KM/H) from the leaderboard?`)) {
-        deletePlayerFromFirebase(p.tag);
+    const charDesc = p.character ? ` [${p.character}]` : '';
+    if (confirm(`Are you sure you want to remove ${p.tag}${charDesc} (${p.speed} KM/H) from the leaderboard?`)) {
+        deletePlayerFromFirebase(p.tag, p.character);
         players.splice(index, 1);
         saveData(players);
-        showToast(`Removed ${p.tag}.`);
+        showToast(`Removed ${p.tag}${charDesc}.`);
     }
 };
 

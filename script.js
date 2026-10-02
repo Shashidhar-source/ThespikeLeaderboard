@@ -403,40 +403,49 @@ function renderTable(list) {
 }
 
 /* ── AUTOMATIC SPEED ALIGNMENT & SORTING ──────────────────────
-   Detects highest speed and aligns players automatically in rank order */
-/* ── AUTOMATIC SPEED ALIGNMENT & SORTING ──────────────────────
-   Detects highest speed and aligns players automatically in rank order */
+   Detects highest speed and aligns players automatically in rank order.
+   Supports multiple character records per player, while keeping only the
+   highest speed if the same character is submitted again. */
 function alignAndSortPlayers(rawList) {
     if (!Array.isArray(rawList)) return [];
 
-    const tagMap = new Map();
+    const map = new Map();
     rawList.forEach(p => {
         if (!p || !p.tag) return;
-        const tagKey = p.tag.trim().toUpperCase();
-        if (!tagKey) return;
+        const tag = p.tag.trim();
+        const tagUpper = tag.toUpperCase();
+        if (!tagUpper) return;
         const speed = parseInt(p.speed, 10) || 0;
         if (speed <= 0) return;
 
+        const char = (p.character || 'BLACK THUNDER NISHIKAWA').trim();
+        const charUpper = char.toUpperCase();
+
+        // Player identifier: UID if present, otherwise IGN
+        const playerKey = (p.uid && p.uid.trim()) ? p.uid.trim().toUpperCase() : tagUpper;
+        const compositeKey = `${playerKey}____${charUpper}`;
+
         const normalized = {
             ...p,
-            tag: p.tag.trim(),
+            tag,
+            character: char,
             speed
         };
 
-        if (!tagMap.has(tagKey)) {
-            tagMap.set(tagKey, normalized);
+        if (!map.has(compositeKey)) {
+            map.set(compositeKey, normalized);
         } else {
-            const existing = tagMap.get(tagKey);
-            // If duplicate exists, keep whichever record has the higher speed, or more recent
+            const existing = map.get(compositeKey);
+            // If duplicate exists for same player & same character, keep whichever has higher speed
             if (speed > existing.speed) {
-                tagMap.set(tagKey, normalized);
+                map.set(compositeKey, normalized);
             } else if (speed === existing.speed && p.updatedAt && (!existing.updatedAt || p.updatedAt > existing.updatedAt)) {
-                tagMap.set(tagKey, normalized);
+                map.set(compositeKey, normalized);
             }
         }
     });
 
-    return Array.from(tagMap.values())
+    return Array.from(map.values())
         // Sort strictly descending: greater speeds first, smaller speeds below
         .sort((a, b) => {
             if (b.speed !== a.speed) {
@@ -472,13 +481,22 @@ document.getElementById('stateFilter')?.addEventListener('change', e => { fState
 function mergeWithLocalPlayers(remoteList, isCloud = false) {
     const map = new Map();
 
+    const getCompositeKey = (p) => {
+        const tagUpper = (p.tag || '').trim().toUpperCase();
+        const playerKey = (p.uid && p.uid.trim()) ? p.uid.trim().toUpperCase() : tagUpper;
+        const charUpper = (p.character || 'BLACK THUNDER NISHIKAWA').trim().toUpperCase();
+        return `${playerKey}____${charUpper}`;
+    };
+
     // 1. Always add all valid remote/cloud players first (they are ground truth)
     if (Array.isArray(remoteList)) {
         remoteList.forEach(p => {
             if (p && p.tag) {
-                const tagKey = p.tag.trim().toUpperCase();
                 const speed = parseInt(p.speed, 10) || 0;
-                if (speed > 0) map.set(tagKey, { ...p, speed });
+                if (speed > 0) {
+                    const key = getCompositeKey(p);
+                    map.set(key, { ...p, speed });
+                }
             }
         });
     }
@@ -491,11 +509,12 @@ function mergeWithLocalPlayers(remoteList, isCloud = false) {
             if (Array.isArray(parsed)) {
                 parsed.forEach(p => {
                     if (p && p.tag) {
-                        const tagKey = p.tag.trim().toUpperCase();
                         const speed = parseInt(p.speed, 10) || 0;
-                        if (speed > 0 && !map.has(tagKey)) {
-                            // Only add local if NOT already in cloud
-                            map.set(tagKey, { ...p, speed });
+                        if (speed > 0) {
+                            const key = getCompositeKey(p);
+                            if (!map.has(key)) {
+                                map.set(key, { ...p, speed });
+                            }
                         }
                     }
                 });
@@ -571,6 +590,98 @@ const profileAvatarPreview = document.getElementById('profileAvatarPreview');
 const profileAvatarName    = document.getElementById('profileAvatarName');
 const profileAvatarStatus  = document.getElementById('profileAvatarStatus');
 const loginPromptModal     = document.getElementById('loginPromptModal');
+const charRecordBadge      = document.getElementById('charRecordBadge');
+
+/* ── MULTI-CHARACTER RECORD LOOKUP & STATUS HELPER ─────────── */
+function getPlayerCharacterRecords(ign, uid) {
+    const rawUser = getCurrentUser() || {};
+    const ignUpper = (ign || rawUser.ign || '').trim().toUpperCase();
+    const uidUpper = (uid || rawUser.uid || '').trim().toUpperCase();
+
+    if (!ignUpper && !uidUpper) return [];
+
+    return allPlayers.filter(p => {
+        const pTag = (p.tag || '').trim().toUpperCase();
+        const pUid = (p.uid || '').trim().toUpperCase();
+        const matchTag = ignUpper && pTag === ignUpper;
+        const matchUid = uidUpper && pUid && pUid === uidUpper;
+        return matchTag || matchUid;
+    });
+}
+
+function updateCharRecordStatus(selectedChar) {
+    if (!charRecordBadge) return;
+    const ign = recordIgnInput ? recordIgnInput.value.trim() : '';
+    const uid = recordUidInput ? recordUidInput.value.trim() : '';
+    const playerRecords = getPlayerCharacterRecords(ign, uid);
+
+    if (!playerRecords.length && !ign) {
+        charRecordBadge.style.display = 'none';
+        return;
+    }
+
+    const currentChar = (selectedChar || recordCharInput?.value || 'BLACK THUNDER NISHIKAWA').trim();
+    const charUpper = currentChar.toUpperCase();
+
+    // Check if player has record for this selected character
+    const match = playerRecords.find(p => (p.character || '').trim().toUpperCase() === charUpper);
+    const others = playerRecords.filter(p => (p.character || '').trim().toUpperCase() !== charUpper);
+
+    let otherHtml = '';
+    if (others.length > 0) {
+        otherHtml = `
+            <div class="player-other-chars-list">
+                <span style="opacity:0.85;">Your other character records:</span>
+                ${others.map(o => `
+                    <span class="char-mini-tag" data-char="${o.character}" title="Click to switch to ${o.character}">
+                        🏐 ${o.character} · <strong>${o.speed} KM/H</strong>
+                    </span>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    if (match) {
+        charRecordBadge.className = 'char-record-badge has-record';
+        charRecordBadge.innerHTML = `
+            <div class="char-record-badge-header">
+                <span>⚡</span>
+                <span>Current Record for ${currentChar}: <strong>${match.speed} KM/H</strong> (Rank #${match.rank || '—'})</span>
+            </div>
+            <div class="char-record-badge-sub">
+                ⚠️ <strong>Higher speed required:</strong> Entering a higher speed (&gt; ${match.speed} KM/H) will automatically replace this character's record.
+            </div>
+            ${otherHtml}
+        `;
+        charRecordBadge.style.display = 'block';
+    } else {
+        charRecordBadge.className = 'char-record-badge no-record';
+        charRecordBadge.innerHTML = `
+            <div class="char-record-badge-header">
+                <span>✨</span>
+                <span>New Character Entry for ${currentChar}</span>
+            </div>
+            <div class="char-record-badge-sub">
+                💡 Submitting will add a new leaderboard entry! You can submit different characters freely.
+            </div>
+            ${otherHtml}
+        `;
+        charRecordBadge.style.display = 'block';
+    }
+
+    // Attach click listeners to mini-tags to quickly jump to that character
+    charRecordBadge.querySelectorAll('.char-mini-tag').forEach(tagEl => {
+        tagEl.addEventListener('click', () => {
+            const targetChar = tagEl.dataset.char;
+            if (recordCharInput && targetChar) {
+                recordCharInput.value = targetChar;
+                persistFormDraft();
+                updateProfileAvatarPreview(targetChar, recordIgnInput?.value);
+                updateCharRecordStatus(targetChar);
+            }
+        });
+    });
+}
 
 /* ── PERSISTENT REMEMBERED DETAILS SYSTEM ─────────────────────
    Ensures player never has to re-enter their IGN, UID, character, setup, etc. */
@@ -610,13 +721,19 @@ function persistFormDraft() {
     });
 }
 
-// Auto-remember details in real-time as player types
+// Auto-remember details in real-time as player types & update character badge
 [recordIgnInput, recordUidInput, recordSpeedInput, recordSetupInput, recordCityInput, recordProofInput].forEach(inp => {
-    inp?.addEventListener('input', persistFormDraft);
+    inp?.addEventListener('input', () => {
+        persistFormDraft();
+        if (inp === recordIgnInput || inp === recordUidInput) {
+            updateCharRecordStatus(recordCharInput?.value);
+        }
+    });
 });
 recordCharInput?.addEventListener('change', () => {
     persistFormDraft();
     updateProfileAvatarPreview(recordCharInput.value, recordIgnInput?.value);
+    updateCharRecordStatus(recordCharInput.value);
 });
 recordStateInput?.addEventListener('change', persistFormDraft);
 
@@ -826,14 +943,26 @@ function openRecordSubmissionModal(user = null) {
     // Prefill existing player record if available from leaderboard list
     let existing = null;
     const lookupTag = (activeUser?.ign || remembered.ign || '').toLowerCase();
-    if (lookupTag) {
-        existing = allPlayers.find(p => (p.tag || '').toLowerCase() === lookupTag);
+    const lookupUid = (activeUser?.uid || remembered.uid || '').toLowerCase();
+    const chosenCharacter = activeUser?.character || remembered.character || 'BLACK THUNDER NISHIKAWA';
+
+    // Find record matching player and character if possible, or any record by player
+    if (lookupTag || lookupUid) {
+        existing = allPlayers.find(p => {
+            const matchTag = lookupTag && (p.tag || '').toLowerCase() === lookupTag;
+            const matchUid = lookupUid && (p.uid || '').toLowerCase() === lookupUid;
+            const matchChar = (p.character || '').trim().toLowerCase() === chosenCharacter.trim().toLowerCase();
+            return (matchTag || matchUid) && matchChar;
+        }) || allPlayers.find(p => {
+            const matchTag = lookupTag && (p.tag || '').toLowerCase() === lookupTag;
+            const matchUid = lookupUid && (p.uid || '').toLowerCase() === lookupUid;
+            return matchTag || matchUid;
+        });
     }
 
     // Prefill ALL details using priority: activeUser -> remembered -> existing -> defaults
     const chosenIgn       = activeUser?.ign || remembered.ign || existing?.tag || '';
     const chosenUid       = activeUser?.uid || remembered.uid || existing?.uid || '';
-    const chosenCharacter = activeUser?.character || remembered.character || existing?.character || 'BLACK THUNDER NISHIKAWA';
     const chosenSpeed     = (activeUser?.speed !== undefined && activeUser?.speed !== '' && activeUser?.speed !== 0)
                             ? activeUser.speed
                             : (remembered.speed !== undefined && remembered.speed !== '' && remembered.speed !== 0 ? remembered.speed : (existing?.speed || ''));
@@ -860,9 +989,14 @@ function openRecordSubmissionModal(user = null) {
     // Configure profile status banner
     if (statusStrip) {
         if (activeUser && activeUser.ign) {
+            const myRecords = getPlayerCharacterRecords(chosenIgn, chosenUid);
             const pIdx = allPlayers.findIndex(p => p.tag.toLowerCase() === activeUser.ign.toLowerCase());
+            const charCount = myRecords.length;
+            const charPill = charCount > 1 
+                ? `<span class="rank-pill" style="margin-left:6px;background:rgba(0,229,255,0.15);border:1px solid #00e5ff;color:#00e5ff;">🎮 ${charCount} Character Records</span>` 
+                : '';
             const rankHtml = pIdx >= 0 
-                ? `<span class="rank-pill">🏆 Leaderboard Rank: #${pIdx + 1} (${allPlayers[pIdx].speed} KM/H)</span>`
+                ? `<span class="rank-pill">🏆 Leaderboard Best: #${pIdx + 1} (${allPlayers[pIdx].speed} KM/H)</span>${charPill}`
                 : `<span class="rank-pill">⚡ Unranked (Enter speed to rank!)</span>`;
 
             statusStrip.innerHTML = `
@@ -886,6 +1020,7 @@ function openRecordSubmissionModal(user = null) {
     }
 
     updateProfileAvatarPreview(recordCharInput?.value, recordIgnInput?.value);
+    updateCharRecordStatus(recordCharInput?.value);
     triggerLinkInspection(recordProofInput?.value || '');
     recordModal.style.display = 'flex';
     if (!recordIgnInput?.value) {
@@ -1005,32 +1140,77 @@ recordForm?.addEventListener('submit', async (e) => {
         updatedAt: new Date().toISOString()
     };
 
-    // Check whether the player already exists and whether the new speed is greater or smaller
-    const ignUpper = ign.toUpperCase();
-    const oldIgn = rawUser.ign ? rawUser.ign.toUpperCase() : '';
-    const existingPlayer = allPlayers.find(p => 
-        (p.tag || '').toUpperCase() === ignUpper || 
-        (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
+    // Player identity identifiers
+    const ignUpper   = ign.toUpperCase();
+    const uidUpper   = uid.toUpperCase();
+    const oldIgn     = rawUser.ign ? rawUser.ign.toUpperCase() : '';
+    const oldUid     = rawUser.uid ? rawUser.uid.toUpperCase() : '';
+    const charUpper  = (character || 'BLACK THUNDER NISHIKAWA').trim().toUpperCase();
+
+    const isPlayerMatch = (p) => {
+        if (!p) return false;
+        const pTag = (p.tag || '').trim().toUpperCase();
+        const pUid = (p.uid || '').trim().toUpperCase();
+        const matchTag = ignUpper && pTag === ignUpper;
+        const matchOldTag = oldIgn && pTag === oldIgn;
+        const matchUid = uidUpper && pUid && pUid === uidUpper;
+        const matchOldUid = oldUid && pUid && pUid === oldUid;
+        return matchTag || matchOldTag || matchUid || matchOldUid;
+    };
+
+    // Find if player has an existing record with THIS SAME character
+    const existingCharIdx = allPlayers.findIndex(p => 
+        isPlayerMatch(p) && (p.character || '').trim().toUpperCase() === charUpper
+    );
+    const existingCharRecord = existingCharIdx >= 0 ? allPlayers[existingCharIdx] : null;
+
+    // Check all other character records the player holds
+    const otherCharRecords = allPlayers.filter(p => 
+        isPlayerMatch(p) && (p.character || '').trim().toUpperCase() !== charUpper
     );
 
     let speedChangeNotice = '';
-    if (existingPlayer) {
-        const oldSpeed = existingPlayer.speed || 0;
-        if (speed > oldSpeed) {
-            speedChangeNotice = `⚡ SPEED INCREASE: +${speed - oldSpeed} KM/H (Was ${oldSpeed} KM/H)`;
-        } else if (speed < oldSpeed) {
-            speedChangeNotice = `ℹ️ Updated speed to ${speed} KM/H (Previous record: ${oldSpeed} KM/H)`;
+    if (existingCharRecord) {
+        const oldSpeed = parseInt(existingCharRecord.speed, 10) || 0;
+        if (speed <= oldSpeed) {
+            // Player submitted same character with lower or equal speed -> Reject / warn
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>💾</span> SAVE PROFILE &amp; LEADERBOARD RECORD';
+            }
+            alert(`⚠️ Cannot replace record:\n\nYou already have a verified record of ${oldSpeed} KM/H for ${character}.\n\n` +
+                  `• Same character: You can only submit a HIGHER speed (greater than ${oldSpeed} KM/H) to replace this record.\n` +
+                  `• Different characters: You can select other characters from the dropdown (e.g. OASIS, JAEHYUN, HEESEONG) to add separate leaderboard entries!\n\n` +
+                  `Please enter a speed greater than ${oldSpeed} KM/H, or select a different character.`);
+            recordSpeedInput.focus();
+            return;
+        }
+
+        // Higher speed with same character -> Replace the existing record!
+        allPlayers[existingCharIdx] = recordData;
+        speedChangeNotice = `⚡ RECORD REPLACED: ${character} speed improved from ${oldSpeed} KM/H to ${speed} KM/H (+${speed - oldSpeed} KM/H)!`;
+    } else {
+        // Different character! Add as new record entry
+        allPlayers.push(recordData);
+        if (otherCharRecords.length > 0) {
+            speedChangeNotice = `🎉 NEW CHARACTER RECORD: Added ${character} (${speed} KM/H)! You now hold ${otherCharRecords.length + 1} character records.`;
         } else {
-            speedChangeNotice = `ℹ️ Maintained record at ${speed} KM/H`;
+            speedChangeNotice = `🎉 First record placed for ${character} at ${speed} KM/H!`;
         }
     }
+
+    // Compute player's personal best across all their characters
+    const allMySpeeds = allPlayers
+        .filter(p => isPlayerMatch(p))
+        .map(p => parseInt(p.speed, 10) || 0);
+    const personalBest = Math.max(...allMySpeeds, speed);
 
     const updatedUser = {
         ...rawUser,
         ign,
         uid,
         character,
-        speed,
+        speed: personalBest,
         setup,
         state,
         region: state,
@@ -1043,25 +1223,15 @@ recordForm?.addEventListener('submit', async (e) => {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
     saveRememberedDetails(updatedUser);
 
-    // 2. POSITION RECORD IN LEADERBOARD (Greater speeds rank higher, smaller speeds rank below)
-    const existingIdx = allPlayers.findIndex(p => 
-        (p.tag || '').toUpperCase() === ignUpper || 
-        (oldIgn && (p.tag || '').toUpperCase() === oldIgn)
-    );
-
-    if (existingIdx >= 0) {
-        allPlayers[existingIdx] = recordData;
-    } else {
-        allPlayers.push(recordData);
-    }
-
-    // Sort strictly by speed descending and assign proper ranks
+    // 2. POSITION RECORD IN LEADERBOARD & SORT
     allPlayers = alignAndSortPlayers(allPlayers);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
     onPlayersUpdated();
 
-    // 3. Find the player's suitable rank and position in the table
-    const newRank = allPlayers.findIndex(p => (p.tag || '').toUpperCase() === ignUpper) + 1;
+    // 3. Find the player's rank for THIS specific character record
+    const newRank = allPlayers.findIndex(p => 
+        isPlayerMatch(p) && (p.character || '').trim().toUpperCase() === charUpper
+    ) + 1;
     const totalPlayers = allPlayers.length;
 
     // 4. Refresh UI and close modal
@@ -1072,7 +1242,7 @@ recordForm?.addEventListener('submit', async (e) => {
         submitBtn.innerHTML = '<span>💾</span> SAVE PROFILE &amp; LEADERBOARD RECORD';
     }
 
-    // 5. Scroll to leaderboard & highlight the suitable place in the table
+    // 5. Scroll to leaderboard & highlight the placed row
     const tableSection = document.getElementById('leaderboard-section');
     if (tableSection) {
         tableSection.scrollIntoView({ behavior: 'smooth' });
@@ -1091,11 +1261,11 @@ recordForm?.addEventListener('submit', async (e) => {
     // 6. Descriptive toast feedback showing their rank in the table
     let rankMessage = '';
     if (newRank === 1) {
-        rankMessage = `👑 NEW #1 RECORD! <strong>${ign}</strong> is India's Champion with <strong>${speed} KM/H</strong>!`;
+        rankMessage = `👑 NEW #1 RECORD! <strong>${ign}</strong> (${character}) is India's Champion with <strong>${speed} KM/H</strong>!`;
     } else if (newRank <= 3) {
-        rankMessage = `🏆 PODIUM FINISH! <strong>${ign}</strong> claimed Rank <strong>#${newRank}</strong> with <strong>${speed} KM/H</strong>!`;
+        rankMessage = `🏆 PODIUM FINISH! <strong>${ign}</strong> (${character}) claimed Rank <strong>#${newRank}</strong> with <strong>${speed} KM/H</strong>!`;
     } else {
-        rankMessage = `🎉 Record placed at Rank <strong>#${newRank}</strong> of ${totalPlayers} with <strong>${speed} KM/H</strong>!`;
+        rankMessage = `🎉 Record placed at Rank <strong>#${newRank}</strong> of ${totalPlayers} with <strong>${speed} KM/H</strong> (${character})!`;
     }
 
     if (speedChangeNotice) {
