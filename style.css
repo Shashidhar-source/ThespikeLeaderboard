@@ -3411,6 +3411,419 @@ select:-webkit-autofill {
     margin: 0;
 }
 
+/* ============================================================
+   COMPREHENSIVE MOBILE & RESPONSIVE OPTIMIZATION
+   ============================================================ */
+
+/* ── GLOBAL TOUCH & MOBILE ENHANCEMENTS ───────────────────── */
+* {
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+}
+
+/* Make all interactive elements touch-friendly (min 44px tap target) */
+button, a, select, input, .proof-btn {
+    min-height: 36px;
+}
+
+/* ── DESKTOP LARGE (1200px+) ──────────────────────────────── */
+@media (min-width: 1200px) {
+    .page-wrapper {
+        max-width: 1280px;
+    }
+    .hero {
+        gap: 48px;
+    }
+}
+
+/* ── TABLET (768px–1024px) ────────────────────────────────── */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .top-bar {
+        padding: 12px 20px;
+    }
+    .hero {
+        grid-template-columns: 140px 1fr 1fr;
+        gap: 24px;
+        padding: 28px 24px;
+    }
+    .speed-gauge {
+        width: 140px;
+    }
+    .podium-section {
+        gap: 14px;
+    }
+    .modal-content {
+        width: 92%;
+        max-width: 600px;
+    }
+}
+
+/* ── MOBILE MAIN (max-width: 768px) ──────────────────────── */
+@media (max-width: 768px) {
+    /* Page */
+    html { font-size: 15px; }
+    .page-wrapper {
+        margin: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+
+    /* Header / Top Bar */
+    .top-bar {
+        padding: 10px 14px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .logo {
+        font-size: 18px !important;
+        letter-spacing: 2px;
+    }
+    .top-nav { display: none; }
+    .header-social-group {
+        gap: 8px;
+    }
+    .header-social-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    .header-social-text { display: none; }
+    .header-yt-avatar {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    /* User session bar in nav */
+    .user-session-bar {
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .logged-in-badge {
+        font-size: 12px;
+    }
+    .record-nav-btn, .nav-login-btn {
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+    }
+
+    /* Hero Section */
+    .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 20px 16px;
+        gap: 16px;
+    }
+    .speed-gauge {
+        width: 120px;
+        margin: 0 auto;
+    }
+    .hero-text {
+        width: 100%;
+    }
+    .hero-title {
+        font-size: clamp(22px, 8vw, 42px) !important;
+        line-height: 1.1;
+    }
+    .hero-subtitle, .hero-tagline {
+        font-size: 13px !important;
+    }
+    .tricolor-bar {
+        margin: 10px auto 8px;
+        width: 60px;
+    }
+    .stats-strip {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        max-width: 100%;
+    }
+    .stat-item {
+        min-width: 80px;
+    }
+    .stat-num {
+        font-size: 22px !important;
+    }
+    .stat-label {
+        font-size: 10px !important;
+    }
+    .hero-cta-wrapper {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .hero-main-btn, .hero-sub-btn {
+        width: 100%;
+        justify-content: center;
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+
+    /* Main Content */
+    .main-content {
+        padding: 0 10px 16px;
+    }
+
+    /* Section Header */
+    .section-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .section-title {
+        font-size: clamp(18px, 6vw, 28px) !important;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+    }
+    .filter-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 6px;
+    }
+    .filter-group select,
+    .filter-group input[type="text"],
+    .filter-group input[type="search"] {
+        width: 100%;
+        font-size: 14px;
+        padding: 10px 12px;
+        height: 42px;
+        box-sizing: border-box;
+    }
+    .filter-submit-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    /* Podium Section */
+    .podium-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .podium-card {
+        margin-bottom: 0 !important;
+        padding: 16px 14px;
+    }
+    .podium-2 { order: 2; }
+    .podium-1 { order: 1; }
+    .podium-3 { order: 3; }
+
+    /* Player avatar in podium */
+    .player-avatar-wrap {
+        width: 60px !important;
+        height: 70px !important;
+    }
+    .podium-tag { font-size: 18px !important; }
+    .podium-speed { font-size: 22px !important; }
+    .podium-char { font-size: 11px !important; }
+
+    /* Leaderboard Table - scrollable on mobile */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+    .leaderboard-table {
+        min-width: 560px;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+    .leaderboard-table th:nth-child(4),
+    .leaderboard-table td:nth-child(4) {
+        display: none; /* Hide Setup column on mobile */
+    }
+    .speed-val { font-size: 14px !important; }
+    .player-tag { font-size: 13px !important; }
+
+    /* About Section */
+    .about-features {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .feature-card {
+        padding: 14px 12px;
+    }
+    .feature-icon { font-size: 24px !important; }
+    .feature-title { font-size: 13px !important; }
+
+    /* Modals */
+    .modal-backdrop {
+        align-items: flex-end !important;
+        padding: 0;
+    }
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 20px 20px 0 0 !important;
+        padding: 20px 16px !important;
+        margin: 0;
+    }
+    .modal-header h3 {
+        font-size: 18px !important;
+    }
+    .form-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .form-group {
+        width: 100%;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px !important; /* Prevents iOS zoom */
+        padding: 12px 14px;
+        height: 48px;
+        box-sizing: border-box;
+    }
+    .form-group select {
+        height: 48px;
+    }
+    .image-preview-box {
+        flex-direction: row;
+        gap: 12px;
+        padding: 12px;
+    }
+    .preview-avatar {
+        width: 60px !important;
+        height: 70px !important;
+        flex-shrink: 0;
+    }
+    .modal-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .modal-actions button,
+    .modal-actions a {
+        width: 100%;
+        justify-content: center;
+        padding: 14px !important;
+        font-size: 14px !important;
+    }
+    .profile-status-strip {
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+
+    /* Floating Profile Button */
+    .floating-profile-btn {
+        bottom: 16px;
+        right: 16px;
+        padding: 12px 16px;
+        font-size: 13px;
+        gap: 6px;
+    }
+    .btn-text { font-size: 12px !important; }
+
+    /* Footer */
+    .site-footer {
+        padding: 24px 14px;
+    }
+    .footer-social-links {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .footer-social-btn {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+/* ── SMALL MOBILE (max-width: 480px) ─────────────────────── */
+@media (max-width: 480px) {
+    .logo { font-size: 16px !important; }
+    .hero-title { font-size: clamp(20px, 9vw, 32px) !important; }
+    .hero-cta-wrapper { gap: 8px; }
+
+    .podium-section { gap: 8px; }
+    .podium-card { padding: 12px 10px; }
+    .podium-tag { font-size: 15px !important; }
+    .podium-speed { font-size: 18px !important; }
+
+    .leaderboard-table { min-width: 480px; }
+    .leaderboard-table th,
+    .leaderboard-table td { padding: 8px 6px; font-size: 12px; }
+
+    /* Hide less important table columns */
+    .leaderboard-table th:nth-child(5),
+    .leaderboard-table td:nth-child(5) {
+        display: none; /* Hide Location column on very small phones */
+    }
+
+    .about-features { grid-template-columns: 1fr; }
+    .modal-content { padding: 16px 12px !important; }
+
+    /* Speed gauge smaller on tiny phones */
+    .speed-gauge { width: 100px; }
+    .gauge-speed-label { font-size: 16px !important; }
+}
+
+/* ── VERY SMALL MOBILE (max-width: 360px) ────────────────── */
+@media (max-width: 360px) {
+    html { font-size: 14px; }
+    .top-bar { padding: 8px 10px; }
+    .hero { padding: 16px 10px; }
+    .main-content { padding: 0 8px 12px; }
+    .leaderboard-table { min-width: 380px; }
+    .modal-content { padding: 14px 10px !important; }
+}
+
+/* ── CHARACTER IMAGE: TRANSPARENT PNG ONLY ───────────────── */
+/* Remove background from all character images shown in leaderboard/podium */
+.player-avatar-img,
+.transparent-cutout {
+    background: transparent !important;
+    mix-blend-mode: normal;
+}
+
+.player-avatar-wrap {
+    background: transparent !important;
+}
+
+/* Isabel-specific: ensure no background shows */
+img[alt="ISABEL"],
+img[src*="ISABEL"] {
+    background: transparent !important;
+}
+
+/* ── SCROLLBAR THIN ON MOBILE ─────────────────────────────── */
+@media (max-width: 768px) {
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--accent-red); border-radius: 4px; }
+}
+
+/* ── SAFE AREA INSETS (iPhone notch / home indicator) ─────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .floating-profile-btn {
+        bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+    .modal-content {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    }
+    .site-footer {
+        padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+}
+
+
 
 
 

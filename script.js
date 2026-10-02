@@ -5,22 +5,16 @@
    ============================================================ */
 
 import { 
-    db, 
     auth,
     signOut,
     onAuthStateChanged,
-    collection, 
-    doc, 
-    setDoc, 
-    deleteDoc,
-    getDocs, 
-    onSnapshot, 
-    query, 
-    orderBy, 
     inspectProofLink,
     savePlayerToCloud,
+    saveUserProfile,
+    fetchUserProfile,
     fetchPlayersFromCloud,
-    subscribeToCloudLeaderboard
+    subscribeToCloudLeaderboard,
+    deletePlayerFromCloud
 } from "./firebase-config.js";
 
 
@@ -474,24 +468,22 @@ document.getElementById('searchInput')?.addEventListener('input',  e => { srch  
 document.getElementById('charFilter')?.addEventListener('change',  e => { fChar  = e.target.value; updateAll(); });
 document.getElementById('stateFilter')?.addEventListener('change', e => { fState = e.target.value; updateAll(); });
 
-/* ── FIREBASE FIRESTORE & LOCAL STORAGE SYNC ────────────────── */
-function mergeWithLocalPlayers(remoteList) {
+/* ── FIREBASE REALTIME DB SYNC ─────────────────────────────── */
+function mergeWithLocalPlayers(remoteList, isCloud = false) {
     const map = new Map();
 
-    // 1. Add all valid remote players
+    // 1. Always add all valid remote/cloud players first (they are ground truth)
     if (Array.isArray(remoteList)) {
         remoteList.forEach(p => {
             if (p && p.tag) {
                 const tagKey = p.tag.trim().toUpperCase();
                 const speed = parseInt(p.speed, 10) || 0;
-                if (speed > 0) {
-                    map.set(tagKey, { ...p, speed });
-                }
+                if (speed > 0) map.set(tagKey, { ...p, speed });
             }
         });
     }
 
-    // 2. Preserve any local player who has saved a valid record
+    // 2. If cloud data is authoritative, only add locals if they aren't in cloud yet
     try {
         const rawLocal = localStorage.getItem(STORAGE_KEY);
         if (rawLocal) {
@@ -501,45 +493,12 @@ function mergeWithLocalPlayers(remoteList) {
                     if (p && p.tag) {
                         const tagKey = p.tag.trim().toUpperCase();
                         const speed = parseInt(p.speed, 10) || 0;
-                        if (speed > 0) {
-                            if (!map.has(tagKey)) {
-                                map.set(tagKey, { ...p, speed });
-                            } else {
-                                // If local speed is greater or equal, preserve the local record
-                                const remoteP = map.get(tagKey);
-                                if (speed >= (remoteP.speed || 0)) {
-                                    map.set(tagKey, { ...p, speed });
-                                }
-                            }
+                        if (speed > 0 && !map.has(tagKey)) {
+                            // Only add local if NOT already in cloud
+                            map.set(tagKey, { ...p, speed });
                         }
                     }
                 });
-            }
-        }
-
-        // Also check if current user has an active speed record
-        const rawUser = localStorage.getItem(CURRENT_USER_KEY);
-        if (rawUser) {
-            const u = JSON.parse(rawUser);
-            if (u && u.ign) {
-                const uSpeed = parseInt(u.speed, 10) || 0;
-                if (uSpeed > 0) {
-                    const uTag = u.ign.trim().toUpperCase();
-                    const existing = map.get(uTag);
-                    if (!existing || uSpeed >= (existing.speed || 0)) {
-                        map.set(uTag, {
-                            tag: u.ign.trim(),
-                            speed: uSpeed,
-                            character: u.character || 'BLACK THUNDER NISHIKAWA',
-                            setup: u.setup || 'Power 120 / Jump 120',
-                            state: u.state || u.region || 'India',
-                            city: u.city || '',
-                            proof: u.proof || '',
-                            uid: u.uid || '',
-                            updatedAt: u.updatedAt || new Date().toISOString()
-                        });
-                    }
-                }
             }
         }
     } catch (e) {
@@ -549,23 +508,22 @@ function mergeWithLocalPlayers(remoteList) {
     return Array.from(map.values());
 }
 
-async function initFirebaseLeaderboard() {
-    try {
-        // Subscribe to real-time updates from Firebase Cloud (Realtime DB & Firestore)
-        subscribeToCloudLeaderboard((cleanList) => {
-            if (Array.isArray(cleanList) && cleanList.length > 0) {
-                const merged = mergeWithLocalPlayers(cleanList);
-                allPlayers = alignAndSortPlayers(merged);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
-                onPlayersUpdated();
-            } else {
-                loadStoredPlayers();
-            }
-        });
-    } catch (err) {
-        console.warn("Firebase initialization note (using local cache):", err?.message || err);
-        loadStoredPlayers();
-    }
+function initFirebaseLeaderboard() {
+    // Subscribe to real-time updates from Firebase Realtime Database
+    // onValue fires immediately on load AND on every write from any device
+    subscribeToCloudLeaderboard((cloudList, isCloud) => {
+        if (Array.isArray(cloudList) && cloudList.length > 0) {
+            // Cloud is authoritative — merge then display
+            const merged = mergeWithLocalPlayers(cloudList, isCloud);
+            allPlayers = alignAndSortPlayers(merged);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+        } else {
+            // Cloud is empty — show empty leaderboard (not local cache)
+            allPlayers = [];
+            localStorage.removeItem(STORAGE_KEY);
+        }
+        onPlayersUpdated();
+    });
 }
 
 // Loads stored records immediately from localStorage so leaderboard is instantly ready on page refresh
@@ -826,20 +784,30 @@ function checkUserSession() {
     }
 }
 
-// Sync Firebase Auth state changes without wiping offline local session
-onAuthStateChanged(auth, (fbUser) => {
+// Sync Firebase Auth state changes — fetch full profile from RTDB for cross-device login
+onAuthStateChanged(auth, async (fbUser) => {
     if (fbUser) {
         try {
             const current = getCurrentUser() || {};
+            // Fetch profile from Realtime Database (cross-device sync)
+            let cloudProfile = null;
+            try {
+                cloudProfile = await fetchUserProfile(fbUser.uid);
+            } catch(e) {}
+
             const updated = {
                 ...current,
+                // Cloud profile wins for persistent fields
+                ...(cloudProfile || {}),
                 email: fbUser.email || current.email || '',
-                ign: current.ign || fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Player'),
-                firebaseUid: fbUser.uid
+                ign: (cloudProfile?.ign) || current.ign || fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Player'),
+                firebaseUid: fbUser.uid,
+                // Preserve speed from cloud if higher
+                speed: Math.max(parseInt(cloudProfile?.speed,10)||0, parseInt(current.speed,10)||0) || 0
             };
             localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
             saveRememberedDetails(updated);
-        } catch (e) {}
+        } catch (e) { console.warn('Auth state sync error:', e); }
     }
     checkUserSession();
 });
@@ -878,7 +846,11 @@ function openRecordSubmissionModal(user = null) {
 
     if (recordIgnInput)   recordIgnInput.value   = chosenIgn;
     if (recordUidInput)   recordUidInput.value   = chosenUid;
-    if (recordCharInput)  recordCharInput.value  = chosenCharacter;
+    // Set character: must set the select to the exact matching option value
+    if (recordCharInput) {
+        const exactMatch = Array.from(recordCharInput.options).some(o => o.value === chosenCharacter);
+        recordCharInput.value = exactMatch ? chosenCharacter : 'BLACK THUNDER NISHIKAWA';
+    }
     if (recordSpeedInput) recordSpeedInput.value = chosenSpeed;
     if (recordSetupInput) recordSetupInput.value = chosenSetup;
     if (recordStateInput) recordStateInput.value = chosenState;
@@ -963,31 +935,20 @@ function triggerLinkInspection(url) {
 
 /* ── NON-BLOCKING BACKGROUND FIREBASE CLOUD SYNC ──────────── */
 async function syncRecordToFirebase(updatedUser, recordData, speed) {
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firebase sync timed out')), 6000)
-    );
-
-    const syncTask = async () => {
-        // 1. Save player record directly to Firebase Cloud (Realtime DB + Firestore)
-        if (speed > 0) {
-            await savePlayerToCloud(recordData);
-        }
-
-        // 2. Also save user profile
-        try {
-            const ign = updatedUser.ign;
-            const userDocId = updatedUser.firebaseUid ? updatedUser.firebaseUid : ign.toLowerCase();
-            await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
-        } catch (e) {
-            // User doc optional
-        }
-    };
-
     try {
-        await Promise.race([syncTask(), timeoutPromise]);
-        console.log('Firebase Cloud sync completed successfully across all devices.');
-    } catch (fbErr) {
-        console.warn('Firebase profile save note (offline copy saved):', fbErr);
+        const tasks = [];
+        // 1. Save player leaderboard record to RTDB (makes it visible on all devices)
+        if (speed > 0) {
+            tasks.push(savePlayerToCloud(recordData));
+        }
+        // 2. Save user profile to RTDB (cross-device login sync)
+        if (updatedUser.firebaseUid) {
+            tasks.push(saveUserProfile(updatedUser.firebaseUid, updatedUser));
+        }
+        await Promise.all(tasks);
+        console.log('[RTDB] Cross-device sync complete.');
+    } catch (err) {
+        console.warn('[RTDB] Sync warning (local copy saved):', err);
     }
 }
 
@@ -1161,12 +1122,10 @@ function showToast(msg, type = '') {
 }
 
 /* ── INIT & IMMEDIATE DATA LOAD ──────────────────────────── */
-// Load immediately on script load so table and podium are NEVER blank on refresh
-loadStoredPlayers();
-
 function initApp() {
     checkUserSession();
-    loadStoredPlayers();
+    // Firebase Realtime Database onValue fires immediately and overwrites local cache.
+    // This is the single source of truth across all devices.
     initFirebaseLeaderboard();
 
     // Check if redirected with action=profile or submit=1

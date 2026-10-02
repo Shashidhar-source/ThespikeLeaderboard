@@ -4,12 +4,6 @@
    ============================================================ */
 
 import { 
-    db, 
-    collection, 
-    doc, 
-    setDoc, 
-    deleteDoc, 
-    getDocs, 
     inspectProofLink,
     savePlayerToCloud,
     fetchPlayersFromCloud,

@@ -1,32 +1,17 @@
 /* ============================================================
    THE SPIKE INDIA — firebase-config.js
-   Firebase SDK Initialization & Utilities
+   Firebase SDK Initialization & Cloud Utilities
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { 
-    getFirestore, 
-    collection, 
-    doc, 
-    setDoc, 
-    getDoc, 
-    getDocs, 
-    onSnapshot, 
-    query, 
-    orderBy, 
-    updateDoc, 
-    deleteDoc,
-    serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-
 import {
     getDatabase,
     ref,
     set,
     get,
-    child,
     onValue,
-    remove
+    remove,
+    update
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 import {
@@ -41,7 +26,7 @@ import {
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-// Your Firebase web configuration
+// Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyDakEOvBAtgeXtrm3xzPgv_jZgIH9qWWCA",
     authDomain: "thespikeleaderboard.firebaseapp.com",
@@ -53,266 +38,202 @@ const firebaseConfig = {
     measurementId: "G-NZ2EPECS2W"
 };
 
-// Initialize Firebase
 const app  = initializeApp(firebaseConfig);
-const db   = getFirestore(app);
 const rtdb = getDatabase(app);
 const auth = getAuth(app);
 const RTDB_URL = "https://thespikeleaderboard-default-rtdb.firebaseio.com";
 
-
-/* ── PROOF LINK INSPECTOR & FAKE DETECTOR ──────────────────────
-   Inspects submitted proof links to verify whether they point to
-   legitimate, authentic video hosting platforms or are fake/broken. */
+/* ── PROOF LINK INSPECTOR ────────────────────────────────── */
 const VERIFIED_VIDEO_DOMAINS = [
-    { name: "YouTube", domains: ["youtube.com", "youtu.be", "m.youtube.com"], icon: "🔴", pattern: /(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/ },
-    { name: "Google Drive", domains: ["drive.google.com"], icon: "📁", pattern: /\/file\/d\/([a-zA-Z0-9_-]+)/ },
-    { name: "Streamable", domains: ["streamable.com"], icon: "🎬", pattern: /streamable\.com\/([a-zA-Z0-9]+)/ },
-    { name: "Medal.tv", domains: ["medal.tv"], icon: "🏅", pattern: /medal\.tv\/games\// },
-    { name: "Twitch", domains: ["twitch.tv", "clips.twitch.tv"], icon: "🟣", pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/.*\/clip\/)/ },
-    { name: "Discord CDN", domains: ["cdn.discordapp.com", "media.discordapp.net"], icon: "💬", pattern: /\.(mp4|mov|webm)/i },
-    { name: "Twitter / X", domains: ["twitter.com", "x.com"], icon: "🐦", pattern: /\/status\/\d+/ }
+    { name: "YouTube",    domains: ["youtube.com","youtu.be","m.youtube.com"], icon:"🔴", pattern: /(?:v=|\/embed\/|\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/ },
+    { name: "Google Drive", domains: ["drive.google.com"],   icon:"📁", pattern: /\/file\/d\/([a-zA-Z0-9_-]+)/ },
+    { name: "Streamable", domains: ["streamable.com"],       icon:"🎬", pattern: /streamable\.com\/([a-zA-Z0-9]+)/ },
+    { name: "Medal.tv",   domains: ["medal.tv"],             icon:"🏅", pattern: /medal\.tv\/games\// },
+    { name: "Twitch",     domains: ["twitch.tv","clips.twitch.tv"], icon:"🟣", pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/.*\/clip\/)/ },
+    { name: "Discord CDN",domains: ["cdn.discordapp.com","media.discordapp.net"], icon:"💬", pattern: /\.(mp4|mov|webm)/i },
+    { name: "Twitter / X",domains: ["twitter.com","x.com"], icon:"🐦", pattern: /\/status\/\d+/ }
 ];
 
 export function inspectProofLink(urlStr) {
-    if (!urlStr || urlStr === '#' || urlStr.trim() === '') {
-        return {
-            isValid: false,
-            isFake: false,
-            platform: "None",
-            status: "missing",
-            message: "No proof link provided."
-        };
+    if (!urlStr || urlStr === '#' || !urlStr.trim()) {
+        return { isValid:false, isFake:false, platform:"None", status:"missing", message:"No proof link provided." };
     }
-
     const trimmed = urlStr.trim();
-
-    // Check URL validity
     let parsed;
     try {
         parsed = new URL(trimmed);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            return {
-                isValid: false,
-                isFake: true,
-                platform: "Invalid Protocol",
-                status: "fake",
-                message: "Link must start with https:// or http://"
-            };
+            return { isValid:false, isFake:true, platform:"Invalid Protocol", status:"fake", message:"Link must start with https:// or http://" };
         }
-    } catch (e) {
-        return {
-            isValid: false,
-            isFake: true,
-            platform: "Malformed",
-            status: "fake",
-            message: "Malformed URL: Not a valid web address."
-        };
+    } catch(e) {
+        return { isValid:false, isFake:true, platform:"Malformed", status:"fake", message:"Malformed URL: Not a valid web address." };
     }
-
     const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
-
-    // Check if domain belongs to recognized video platforms
     for (const p of VERIFIED_VIDEO_DOMAINS) {
-        const matchesDomain = p.domains.some(d => hostname === d || hostname.endsWith('.' + d));
-        if (matchesDomain) {
-            // Check specific video ID patterns
+        if (p.domains.some(d => hostname === d || hostname.endsWith('.'+d))) {
             if (p.pattern && !p.pattern.test(trimmed)) {
-                return {
-                    isValid: true,
-                    isFake: false,
-                    warning: true,
-                    platform: p.name,
-                    icon: p.icon,
-                    status: "unverified_path",
-                    message: `${p.name} link recognized, but missing direct video ID. Please check URL.`
-                };
+                return { isValid:true, isFake:false, warning:true, platform:p.name, icon:p.icon, status:"unverified_path", message:`${p.name} link recognized, but missing direct video ID.` };
             }
-            return {
-                isValid: true,
-                isFake: false,
-                platform: p.name,
-                icon: p.icon,
-                status: "verified",
-                message: `✅ Authentic ${p.name} video link verified!`
-            };
+            return { isValid:true, isFake:false, platform:p.name, icon:p.icon, status:"verified", message:`✅ Authentic ${p.name} video link verified!` };
         }
     }
-
-    // Known spam, test or generic unverified domains
-    const suspiciousDomains = ["example.com", "test.com", "fake.com", "rickroll", "localhost", "bit.ly"];
-    const isSuspicious = suspiciousDomains.some(s => hostname.includes(s));
-
-    if (isSuspicious) {
-        return {
-            isValid: false,
-            isFake: true,
-            platform: "Suspicious",
-            status: "fake",
-            message: "❌ Fake or suspicious domain detected! Please provide real video proof."
-        };
+    const suspicious = ["example.com","test.com","fake.com","rickroll","localhost","bit.ly"];
+    if (suspicious.some(s => hostname.includes(s))) {
+        return { isValid:false, isFake:true, platform:"Suspicious", status:"fake", message:"❌ Fake or suspicious domain detected!" };
     }
-
-    return {
-        isValid: true,
-        isFake: false,
-        warning: true,
-        platform: "External Link",
-        icon: "🔗",
-        status: "unverified_domain",
-        message: "⚠️ External link: Not a recognized standard video platform (YouTube, Drive, Streamable, etc.)."
-    };
+    return { isValid:true, isFake:false, warning:true, platform:"External Link", icon:"🔗", status:"unverified_domain", message:"⚠️ External link: Not a recognized standard video platform." };
 }
 
-/* ── CLOUD SYNC HELPERS (FIREBASE REALTIME DB + FIRESTORE) ── */
+/* ── SAFE KEY HELPER ─────────────────────────────────────── */
+function safeKey(str) {
+    return (str || '').trim().toUpperCase().replace(/[.#$[\]/]/g, '_');
+}
+
+/* ── PLAYER CLOUD SYNC (RTDB) ────────────────────────────── */
 export async function savePlayerToCloud(playerData) {
     const tag = (playerData.tag || '').trim();
     if (!tag) return false;
-    const safeTag = tag.toUpperCase().replace(/[\/\.#$\[\]]/g, '_');
+    const key = safeKey(tag);
 
-    const cleanRecord = {
-        tag,
-        speed: parseInt(playerData.speed, 10) || 0,
+    const record = {
+        tag:       tag,
+        speed:     parseInt(playerData.speed, 10) || 0,
         character: playerData.character || 'BLACK THUNDER NISHIKAWA',
-        setup: playerData.setup || 'Power 120 / Jump 120',
-        state: playerData.state || 'India',
-        city: playerData.city || '',
-        proof: playerData.proof || '',
-        uid: playerData.uid || '',
+        setup:     playerData.setup || 'Power 120 / Jump 120',
+        state:     playerData.state || 'India',
+        city:      playerData.city || '',
+        proof:     playerData.proof || '',
+        uid:       playerData.uid || '',
         updatedAt: playerData.updatedAt || new Date().toISOString()
     };
 
-    let saved = false;
-
-    // 1. Save to Firebase Realtime Database via SDK
+    // Primary: Firebase RTDB SDK
     try {
-        await set(ref(rtdb, `players/${safeTag}`), cleanRecord);
-        saved = true;
-    } catch (rtdbErr) {
-        // Fallback to direct REST API if SDK is blocked or offline
+        await set(ref(rtdb, `players/${key}`), record);
+        return true;
+    } catch(e) {
+        // Fallback: REST API (works without SDK permissions)
         try {
-            await fetch(`${RTDB_URL}/players/${encodeURIComponent(safeTag)}.json`, {
+            const r = await fetch(`${RTDB_URL}/players/${encodeURIComponent(key)}.json`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(cleanRecord)
+                body: JSON.stringify(record)
             });
-            saved = true;
-        } catch (restErr) {
-            console.warn('RTDB sync warning:', restErr);
+            return r.ok;
+        } catch(e2) {
+            console.warn('[RTDB] savePlayerToCloud failed:', e2);
+            return false;
         }
     }
-
-    // 2. Also try Firestore in case it is active
-    try {
-        await setDoc(doc(db, "players", safeTag), cleanRecord, { merge: true });
-    } catch (fsErr) {
-        // Firestore may not be configured yet; RTDB handles it
-    }
-
-    return saved;
 }
 
+/* ── USER PROFILE CLOUD SYNC ─────────────────────────────── */
+export async function saveUserProfile(firebaseUid, profileData) {
+    if (!firebaseUid) return false;
+    const clean = {
+        ign:       profileData.ign || '',
+        email:     profileData.email || '',
+        uid:       profileData.uid || '',
+        character: profileData.character || 'BLACK THUNDER NISHIKAWA',
+        setup:     profileData.setup || 'Power 120 / Jump 120',
+        state:     profileData.state || 'India',
+        city:      profileData.city || '',
+        speed:     parseInt(profileData.speed, 10) || 0,
+        proof:     profileData.proof || '',
+        updatedAt: profileData.updatedAt || new Date().toISOString()
+    };
+    try {
+        await set(ref(rtdb, `users/${firebaseUid}`), clean);
+        return true;
+    } catch(e) {
+        try {
+            await fetch(`${RTDB_URL}/users/${encodeURIComponent(firebaseUid)}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(clean)
+            });
+            return true;
+        } catch(e2) {
+            console.warn('[RTDB] saveUserProfile failed:', e2);
+            return false;
+        }
+    }
+}
+
+export async function fetchUserProfile(firebaseUid) {
+    if (!firebaseUid) return null;
+    try {
+        const snap = await get(ref(rtdb, `users/${firebaseUid}`));
+        if (snap.exists()) return snap.val();
+    } catch(e) {
+        try {
+            const r = await fetch(`${RTDB_URL}/users/${encodeURIComponent(firebaseUid)}.json`);
+            const d = await r.json();
+            return d || null;
+        } catch(e2) {}
+    }
+    return null;
+}
+
+/* ── LEADERBOARD FETCH & SUBSCRIBE (RTDB) ────────────────── */
 export async function fetchPlayersFromCloud() {
-    // 1. Fetch from Firebase Realtime Database
     try {
         const snap = await get(ref(rtdb, 'players'));
         if (snap.exists()) {
             const val = snap.val();
-            return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0);
+            return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed,10)||0) > 0);
         }
-    } catch (e) {
-        // Try REST API fallback
+    } catch(e) {
         try {
-            const resp = await fetch(`${RTDB_URL}/players.json`);
-            const val = await resp.json();
+            const r = await fetch(`${RTDB_URL}/players.json`);
+            const val = await r.json();
             if (val && typeof val === 'object') {
-                return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0);
+                return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed,10)||0) > 0);
             }
-        } catch (restErr) {
-            console.warn('fetchPlayersFromCloud REST error:', restErr);
-        }
+        } catch(e2) { console.warn('[RTDB] fetchPlayersFromCloud failed:', e2); }
     }
-
-    // 2. Fallback to Firestore if RTDB had nothing
-    try {
-        const querySnap = await getDocs(collection(db, "players"));
-        const list = [];
-        querySnap.forEach(d => {
-            const data = d.data();
-            if (data && data.tag) list.push(data);
-        });
-        if (list.length > 0) return list;
-    } catch (e) {}
-
     return [];
 }
 
 export function subscribeToCloudLeaderboard(callback) {
     try {
         const playersRef = ref(rtdb, 'players');
-        return onValue(playersRef, (snapshot) => {
+        // onValue fires immediately with current data AND on every change
+        const unsub = onValue(playersRef, (snapshot) => {
             const val = snapshot.val();
-            const list = val ? Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0) : [];
-            callback(list);
+            // val is null when no players exist — pass empty array so UI shows empty state correctly
+            const list = val
+                ? Object.values(val).filter(p => p && p.tag && (parseInt(p.speed,10)||0) > 0)
+                : [];
+            callback(list, true /* isCloud */);
         }, (err) => {
-            console.warn('Realtime subscription warning:', err);
-            // Polling fallback
-            fetchPlayersFromCloud().then(callback);
+            console.warn('[RTDB] onValue error:', err);
+            // On error fall back to one-time fetch
+            fetchPlayersFromCloud().then(list => callback(list, true));
         });
-    } catch (e) {
-        console.warn('subscribeToCloudLeaderboard failed, using fetch:', e);
-        fetchPlayersFromCloud().then(callback);
+        return unsub;
+    } catch(e) {
+        console.warn('[RTDB] subscribeToCloudLeaderboard failed:', e);
+        fetchPlayersFromCloud().then(list => callback(list, true));
         return null;
     }
 }
 
 export async function deletePlayerFromCloud(tag) {
     if (!tag) return false;
-    const safeTag = tag.trim().toUpperCase().replace(/[\/\.#$\[\]]/g, '_');
-    try {
-        await remove(ref(rtdb, `players/${safeTag}`));
-    } catch (e) {
-        try {
-            await fetch(`${RTDB_URL}/players/${encodeURIComponent(safeTag)}.json`, { method: 'DELETE' });
-        } catch (err) {}
+    const key = safeKey(tag);
+    try { await remove(ref(rtdb, `players/${key}`)); } catch(e) {
+        try { await fetch(`${RTDB_URL}/players/${encodeURIComponent(key)}.json`, { method:'DELETE' }); } catch(e2) {}
     }
-    try {
-        await deleteDoc(doc(db, "players", safeTag));
-    } catch (e) {}
     return true;
 }
 
 export {
-    app,
-    db,
-    rtdb,
-    RTDB_URL,
-    ref,
-    set,
-    get,
-    child,
-    onValue,
-    remove,
-    auth,
+    app, rtdb, auth, RTDB_URL,
+    ref, set, get, onValue, remove, update,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged,
-    updateProfile,
-    sendPasswordResetEmail,
-    GoogleAuthProvider,
-    signInWithPopup,
-    collection,
-    doc,
-    setDoc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    orderBy,
-    updateDoc,
-    deleteDoc,
-    serverTimestamp
+    signOut, onAuthStateChanged,
+    updateProfile, sendPasswordResetEmail,
+    GoogleAuthProvider, signInWithPopup
 };
-
-

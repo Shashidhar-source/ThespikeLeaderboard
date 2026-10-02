@@ -4,7 +4,6 @@
    ============================================================ */
 
 import { 
-    db, 
     auth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -14,12 +13,9 @@ import {
     sendPasswordResetEmail,
     GoogleAuthProvider,
     signInWithPopup,
-    doc, 
-    setDoc, 
-    getDoc, 
-    collection, 
-    getDocs, 
-    inspectProofLink 
+    saveUserProfile,
+    fetchUserProfile,
+    inspectProofLink
 } from "./firebase-config.js";
 
 const USERS_STORAGE_KEY = 'spike-cross-users';
@@ -265,16 +261,11 @@ registerForm?.addEventListener('submit', async (e) => {
             createdAt: new Date().toISOString()
         };
 
+        // Save profile to RTDB (cross-device sync)
         try {
-            await setDoc(doc(db, "users", authUser.uid), profile, { merge: true });
-            await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-                email,
-                ign,
-                uid,
-                firebaseUid: authUser.uid
-            }, { merge: true });
+            await saveUserProfile(authUser.uid, profile);
         } catch (dbErr) {
-            console.warn('Firestore registration doc save note:', dbErr);
+            console.warn('RTDB registration profile save note:', dbErr);
         }
 
         const sessionUser = {
@@ -312,26 +303,8 @@ loginForm?.addEventListener('submit', async (e) => {
 
     let emailToAuth = identifier;
 
-    // If identifier is not an email, lookup user email in Firestore
-    if (!identifier.includes('@')) {
-        try {
-            const ignDoc = await getDoc(doc(db, "users_by_ign", identifier.toLowerCase()));
-            if (ignDoc.exists()) {
-                emailToAuth = ignDoc.data().email || identifier;
-            } else {
-                // Search users collection
-                const snap = await getDocs(collection(db, "users"));
-                snap.forEach(d => {
-                    const u = d.data();
-                    if (u.ign?.toLowerCase() === identifier.toLowerCase() && u.email) {
-                        emailToAuth = u.email;
-                    }
-                });
-            }
-        } catch (lookupErr) {
-            console.warn('IGN lookup notice:', lookupErr);
-        }
-    }
+    // Note: login requires email address (not IGN) since Firestore is not used.
+    // Users who registered with email/password should enter their email here.
 
     let authUser = null;
     let authError = null;
@@ -356,11 +329,11 @@ loginForm?.addEventListener('submit', async (e) => {
             firebaseUid: authUser.uid
         };
 
-        // Fetch detailed profile from Firestore
+        // Fetch detailed profile from RTDB (cross-device sync)
         try {
-            const pDoc = await getDoc(doc(db, "users", authUser.uid));
-            if (pDoc.exists()) {
-                profile = { ...profile, ...pDoc.data() };
+            const cloudProfile = await fetchUserProfile(authUser.uid);
+            if (cloudProfile) {
+                profile = { ...profile, ...cloudProfile };
             }
         } catch (e) {}
 
@@ -452,23 +425,18 @@ async function handleGoogleAuth() {
             firebaseUid: user.uid
         };
 
-        // Try getting existing profile from Firestore
+        // Always try fetching existing profile from RTDB (cross-device sync)
         try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                profile = { ...profile, ...userDoc.data() };
+            const cloudProfile = await fetchUserProfile(user.uid);
+            if (cloudProfile) {
+                // Existing profile — restore all their saved details
+                profile = { ...profile, ...cloudProfile };
             } else {
-                // Initialize default profile
-                await setDoc(doc(db, "users", user.uid), profile, { merge: true });
-                await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-                    email: user.email,
-                    ign,
-                    uid: profile.uid,
-                    firebaseUid: user.uid
-                }, { merge: true });
+                // First login — save initial profile to RTDB
+                await saveUserProfile(user.uid, profile);
             }
         } catch (dbErr) {
-            console.warn('Google auth Firestore note:', dbErr);
+            console.warn('Google auth RTDB note:', dbErr);
         }
 
         const sessionUser = {
