@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Spike India | Admin Control Panel</title>
-    <meta name="description" content="Admin Dashboard to manage The Spike Cross India leaderboard, edit player tags, spike speeds, characters, and image mappings.">
+    <meta name="description"
+        content="Admin Dashboard to manage The Spike Cross India leaderboard, edit player tags, spike speeds, characters, and image mappings.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700;1,900&family=Rajdhani:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
 </head>
+
 <body>
 
     <!-- PARTICLES CANVAS -->
@@ -27,13 +32,13 @@
             <div class="modal-badge">🔒 RESTRICTED AREA</div>
             <h2>LEADERBOARD ADMIN</h2>
             <p>Enter the admin passcode to modify player names, speeds, and character rosters.</p>
-            
+
             <form id="adminPassForm">
                 <div class="pass-input-wrap">
                     <span class="lock-icon">🔑</span>
-                    <input type="password" id="adminPassInput" placeholder="Enter Admin Passcode" required autofocus autocomplete="current-password">
+                    <input type="password" id="adminPassInput" placeholder="Enter Admin Passcode" required autofocus
+                        autocomplete="current-password">
                 </div>
-                <div class="pass-hint">💡 Default passcode: <strong>admin123</strong></div>
                 <button type="submit" class="submit-btn full-w">UNLOCK ADMIN DASHBOARD</button>
             </form>
             <div id="adminPassError" class="pass-error" style="display:none;"></div>
@@ -101,7 +106,10 @@
         <div class="info-alert-banner">
             <div class="alert-icon">💡</div>
             <div class="alert-content">
-                <strong>Player Name Image System Active:</strong> Player avatars are automatically loaded from <code>Thespike/images/[player_name].jpg</code> (or <code>.png</code>). When you add or rename a player, simply save their picture with that exact player name in the <code>images/</code> folder and it displays automatically! If no image file is found yet, a sleek esports monogram badge is shown as fallback.
+                <strong>Player Name Image System Active:</strong> Player avatars are automatically loaded from
+                <code>Thespike/images/[player_name].jpg</code> (or <code>.png</code>). When you add or rename a player,
+                simply save their picture with that exact player name in the <code>images/</code> folder and it displays
+                automatically! If no image file is found yet, a sleek esports monogram badge is shown as fallback.
             </div>
         </div>
 
@@ -164,7 +172,8 @@
                     <div class="form-group">
                         <label for="formTag">PLAYER NAME / TAG *</label>
                         <input type="text" id="formTag" required placeholder="e.g. SPIKE_VIPER">
-                        <span class="form-hint">Image will be loaded as: <code id="expectedImageName">images/SPIKE_VIPER.jpg</code></span>
+                        <span class="form-hint">Image will be loaded as: <code
+                                id="expectedImageName">images/SPIKE_VIPER.jpg</code></span>
                     </div>
 
                     <div class="form-group">
@@ -190,14 +199,16 @@
                             <option value="RYUHYEON">RYUHYEON</option>
                             <option value="JENNY">JENNY</option>
                             <option value="SARA">SARA</option>
-                            <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL</option>
+                            <option value="NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL">NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL
+                            </option>
                             <option value="CUSTOM">✏️ Custom Character (Type Below)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label for="formCharacter">OR WRITE CHARACTER NAME *</label>
-                        <input type="text" id="formCharacter" list="charDatalist" required placeholder="e.g. NISHIKAWA or HEESEONG">
+                        <input type="text" id="formCharacter" list="charDatalist" required
+                            placeholder="e.g. NISHIKAWA or HEESEONG">
                         <datalist id="charDatalist">
                             <option value="BLACK THUNDER NISHIKAWA">
                             <option value="NISHIKAWA">
@@ -235,7 +246,8 @@
 
                 <div class="form-group">
                     <label for="formProof">PROOF VIDEO LINK</label>
-                    <input type="text" id="formProof" placeholder="https://youtube.com/shorts/... or https://youtu.be/...">
+                    <input type="text" id="formProof"
+                        placeholder="https://youtube.com/shorts/... or https://youtu.be/...">
                     <div id="adminProofFeedback" class="proof-feedback-box" style="display:none;"></div>
                 </div>
 
@@ -260,4 +272,5 @@
 
     <script type="module" src="admin.js"></script>
 </body>
+
 </html>

@@ -3,32 +3,32 @@
    Firebase Firestore Admin Controller & Proof Link Inspector
    ============================================================ */
 
-import { 
+import {
     inspectProofLink,
     savePlayerToCloud,
     fetchPlayersFromCloud,
     deletePlayerFromCloud
 } from "./firebase-config.js";
 
-const STORAGE_KEY       = 'spike-india-players';
+const STORAGE_KEY = 'spike-india-players';
 const ADMIN_SESSION_KEY = 'spike-admin-authenticated';
-const DEFAULT_PASSCODE  = 'admin123';
+const DEFAULT_PASSCODE = 'thespikeIN';
 
 // ── AVAILABLE CHARACTER IMAGES IN images/ ───────────────────
 const CHARACTER_FILES = [
-  "BLACK THUNDER NISHIKAWA",
-  "DAVE",
-  "HEESEONG",
-  "ISABEL",
-  "JAEHYUN",
-  "JENNY",
-  "LUCAS",
-  "NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",
-  "NISHIKAWA",
-  "RAUL",
-  "RYUHYEON",
-  "SARA",
-  "YOUNGSUP"
+    "BLACK THUNDER NISHIKAWA",
+    "DAVE",
+    "HEESEONG",
+    "ISABEL",
+    "JAEHYUN",
+    "JENNY",
+    "LUCAS",
+    "NISHIKAWA HS OR NISHIKAWA HIGH SCHOOL",
+    "NISHIKAWA",
+    "RAUL",
+    "RYUHYEON",
+    "SARA",
+    "YOUNGSUP"
 ];
 
 // ── MOCK PLAYER PURGE FILTER ─────────────────────────────────
@@ -40,10 +40,10 @@ let players = [];
 let searchQuery = '';
 
 // ── THEME SUPPORT ───────────────────────────────────────────
-const html        = document.documentElement;
+const html = document.documentElement;
 const themeToggle = document.getElementById('themeToggle');
-const toggleIcon  = document.getElementById('toggleIcon');
-let currentTheme  = localStorage.getItem('spike-theme') || 'dark';
+const toggleIcon = document.getElementById('toggleIcon');
+let currentTheme = localStorage.getItem('spike-theme') || 'dark';
 applyTheme(currentTheme);
 
 themeToggle?.addEventListener('click', () => {
@@ -59,11 +59,11 @@ function applyTheme(t) {
 
 // ── BACKGROUND PARTICLES ────────────────────────────────────
 const canvas = document.getElementById('particles-canvas');
-const ctx    = canvas?.getContext('2d');
+const ctx = canvas?.getContext('2d');
 
 function resizeCanvas() {
     if (!canvas) return;
-    canvas.width  = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 resizeCanvas();
@@ -105,12 +105,12 @@ function drawParticles() {
 if (canvas) drawParticles();
 
 // ── PASSCODE AUTH ───────────────────────────────────────────
-const authOverlay   = document.getElementById('adminAuthOverlay');
-const passForm      = document.getElementById('adminPassForm');
-const passInput     = document.getElementById('adminPassInput');
-const passError     = document.getElementById('adminPassError');
-const adminDashboard= document.getElementById('adminDashboard');
-const logoutBtn     = document.getElementById('logoutAdminBtn');
+const authOverlay = document.getElementById('adminAuthOverlay');
+const passForm = document.getElementById('adminPassForm');
+const passInput = document.getElementById('adminPassInput');
+const passError = document.getElementById('adminPassError');
+const adminDashboard = document.getElementById('adminDashboard');
+const logoutBtn = document.getElementById('logoutAdminBtn');
 
 function checkAuth() {
     if (sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
@@ -161,7 +161,7 @@ async function initAdminData() {
                 renderAll();
             }
         }
-    } catch (e) {}
+    } catch (e) { }
 
     // 2. Attempt remote sync from Firebase Cloud
     try {
@@ -274,10 +274,10 @@ function resolveCharacterInfo(charName, playerName) {
     }
 
     const primaryChar = matchedName || (charName ? charName.trim() : '');
-    const pngSrc      = primaryChar ? `images/${encodeURIComponent(primaryChar)}.png` : '';
-    const jpgSrc      = primaryChar ? `images/${encodeURIComponent(primaryChar)}.jpg` : '';
-    const playerPng   = normPlayer  ? `images/${encodeURIComponent(normPlayer)}.png` : '';
-    const playerJpg   = normPlayer  ? `images/${encodeURIComponent(normPlayer)}.jpg` : '';
+    const pngSrc = primaryChar ? `images/${encodeURIComponent(primaryChar)}.png` : '';
+    const jpgSrc = primaryChar ? `images/${encodeURIComponent(primaryChar)}.jpg` : '';
+    const playerPng = normPlayer ? `images/${encodeURIComponent(normPlayer)}.png` : '';
+    const playerJpg = normPlayer ? `images/${encodeURIComponent(normPlayer)}.jpg` : '';
 
     return {
         matched: !!matchedName,
@@ -329,9 +329,9 @@ function renderTable() {
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (p.tag && p.tag.toLowerCase().includes(q)) ||
-               (p.character && p.character.toLowerCase().includes(q)) ||
-               (p.state && p.state.toLowerCase().includes(q)) ||
-               (p.city && p.city.toLowerCase().includes(q));
+            (p.character && p.character.toLowerCase().includes(q)) ||
+            (p.state && p.state.toLowerCase().includes(q)) ||
+            (p.city && p.city.toLowerCase().includes(q));
     });
 
     if (!filtered.length) {
@@ -393,22 +393,22 @@ document.getElementById('adminSearch')?.addEventListener('input', (e) => {
 });
 
 // ── MODAL: ADD / EDIT ───────────────────────────────────────
-const playerModal         = document.getElementById('playerModal');
-const modalTitle          = document.getElementById('modalTitle');
-const playerForm          = document.getElementById('playerForm');
-const editIndexInput      = document.getElementById('editIndex');
-const formTag             = document.getElementById('formTag');
-const formSpeed           = document.getElementById('formSpeed');
+const playerModal = document.getElementById('playerModal');
+const modalTitle = document.getElementById('modalTitle');
+const playerForm = document.getElementById('playerForm');
+const editIndexInput = document.getElementById('editIndex');
+const formTag = document.getElementById('formTag');
+const formSpeed = document.getElementById('formSpeed');
 const formCharacterSelect = document.getElementById('formCharacterSelect');
-const formCharacter       = document.getElementById('formCharacter');
-const formSetup           = document.getElementById('formSetup');
-const formState           = document.getElementById('formState');
-const formCity            = document.getElementById('formCity');
-const formProof           = document.getElementById('formProof');
-const adminProofFeedback  = document.getElementById('adminProofFeedback');
-const expectedImgTxt      = document.getElementById('expectedImageName');
-const modalAvatar         = document.getElementById('modalAvatarPreview');
-const modalImgStatus      = document.getElementById('modalImageStatus');
+const formCharacter = document.getElementById('formCharacter');
+const formSetup = document.getElementById('formSetup');
+const formState = document.getElementById('formState');
+const formCity = document.getElementById('formCity');
+const formProof = document.getElementById('formProof');
+const adminProofFeedback = document.getElementById('adminProofFeedback');
+const expectedImgTxt = document.getElementById('expectedImageName');
+const modalAvatar = document.getElementById('modalAvatarPreview');
+const modalImgStatus = document.getElementById('modalImageStatus');
 
 formCharacterSelect?.addEventListener('change', () => {
     const val = formCharacterSelect.value;
@@ -467,14 +467,14 @@ function openAddModal() {
     formTag.focus();
 }
 
-window.openEditModal = function(index) {
+window.openEditModal = function (index) {
     const p = players[index];
     if (!p) return;
     modalTitle.textContent = `EDIT PLAYER: ${p.tag}`;
     editIndexInput.value = index;
-    formTag.value        = p.tag || '';
-    formSpeed.value      = p.speed || '';
-    formCharacter.value  = p.character || 'NISHIKAWA';
+    formTag.value = p.tag || '';
+    formSpeed.value = p.speed || '';
+    formCharacter.value = p.character || 'NISHIKAWA';
 
     const upper = (p.character || '').trim().toUpperCase();
     if (CHARACTER_FILES.includes(upper)) {
@@ -483,11 +483,11 @@ window.openEditModal = function(index) {
         formCharacterSelect.value = 'CUSTOM';
     }
 
-    formSetup.value      = p.setup || '';
-    formState.value      = p.state || '';
-    formCity.value       = p.city || '';
-    formProof.value      = p.proof && p.proof !== '#' ? p.proof : '';
-    
+    formSetup.value = p.setup || '';
+    formState.value = p.state || '';
+    formCity.value = p.city || '';
+    formProof.value = p.proof && p.proof !== '#' ? p.proof : '';
+
     // Trigger inspector on existing proof
     if (formProof.value) {
         formProof.dispatchEvent(new Event('input'));
@@ -514,9 +514,9 @@ playerModal?.addEventListener('click', (e) => {
 
 function updateModalImagePreview() {
     const charName = formCharacter ? formCharacter.value.trim() : '';
-    const tag      = formTag ? formTag.value.trim() : '';
-    const info     = resolveCharacterInfo(charName, tag);
-    const initial  = (tag || charName || 'P').charAt(0).toUpperCase();
+    const tag = formTag ? formTag.value.trim() : '';
+    const info = resolveCharacterInfo(charName, tag);
+    const initial = (tag || charName || 'P').charAt(0).toUpperCase();
 
     if (expectedImgTxt) {
         expectedImgTxt.textContent = info.characterName ? `images/${info.characterName}.png` : `images/${tag || 'player'}.png`;
@@ -549,14 +549,14 @@ formTag?.addEventListener('input', updateModalImagePreview);
 // ── SAVE PLAYER (ADD OR UPDATE) ─────────────────────────────
 playerForm?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const idx       = parseInt(editIndexInput.value);
-    const tag       = formTag.value.trim();
-    const speed     = parseInt(formSpeed.value);
+    const idx = parseInt(editIndexInput.value);
+    const tag = formTag.value.trim();
+    const speed = parseInt(formSpeed.value);
     const character = formCharacter.value.trim();
-    const setup     = formSetup.value.trim() || 'Power 120 / Jump 120';
-    const state     = formState.value.trim();
-    const city      = formCity.value.trim();
-    const proof     = formProof.value.trim() || '#';
+    const setup = formSetup.value.trim() || 'Power 120 / Jump 120';
+    const state = formState.value.trim();
+    const city = formCity.value.trim();
+    const proof = formProof.value.trim() || '#';
 
     if (!tag || isNaN(speed) || !character || !state) {
         showToast('Please fill all required fields.', 'error');
@@ -588,7 +588,7 @@ playerForm?.addEventListener('submit', (e) => {
 });
 
 // ── DELETE PLAYER ───────────────────────────────────────────
-window.deletePlayer = function(index) {
+window.deletePlayer = function (index) {
     const p = players[index];
     if (!p) return;
     const charDesc = p.character ? ` [${p.character}]` : '';
