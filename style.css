@@ -2899,7 +2899,8 @@ select:-webkit-autofill {
 
 @media (max-width: 900px) {
     .header-social-group {
-        display: none;
+        display: flex;
+        gap: 5px;
     }
 }
 
@@ -3508,220 +3509,515 @@ button, a, select, input, .proof-btn {
 
 /* ── MOBILE MAIN (max-width: 768px) ──────────────────────── */
 @media (max-width: 768px) {
-    /* ─ Page ─ */
-    html { font-size: 15px; }
+    /* ─ Page: Desktop cabinet framing scaled to mobile portrait ─ */
+    html { font-size: 14px; }
     .page-wrapper {
-        margin: 0;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        box-shadow: none;
+        margin: 6px auto;
+        border-radius: 4px;
+        border: 1.5px solid var(--border-bright);
+        box-shadow: 0 0 24px rgba(255, 21, 21, 0.22);
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
-    /* ─ Theme Toggle: relocated to bottom-right above FAB ─ */
+    /* ─ Theme Toggle ─ */
     .theme-toggle {
-        top: auto;
-        bottom: 76px;
-        right: 16px;
-        width: 42px;
-        height: 42px;
-        font-size: 18px;
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
         z-index: 999;
     }
 
-    /* ─ Top Bar ─ */
+    /* ─ Top Bar: matches PC (Logo, Nav, Socials, Game Badge, Login) ─ */
     .top-bar {
-        padding: 10px 14px;
-        gap: 6px;
+        padding: 10px 12px;
+        gap: 8px;
+        display: flex;
         flex-wrap: wrap;
         align-items: center;
+        justify-content: space-between;
     }
     .logo {
-        font-size: 18px !important;
-        letter-spacing: 2px;
-        flex: 1 1 auto;
+        font-size: clamp(16px, 4.2vw, 20px) !important;
+        letter-spacing: 1.5px;
+        flex-shrink: 0;
     }
-    .top-nav { display: none; }
-    .header-social-group { display: flex; gap: 6px; flex-shrink: 0; }
+    .top-nav {
+        display: flex !important;
+        gap: 12px;
+    }
+    .top-nav a {
+        font-size: 11px;
+        letter-spacing: 1px;
+    }
+    .header-social-group {
+        display: flex !important;
+        gap: 5px;
+    }
     .header-social-btn {
-        padding: 5px 8px;
-        min-height: 32px;
-        border-radius: 6px;
+        padding: 4px 7px;
+        min-height: 26px;
+        font-size: 11px;
+        border-radius: 4px;
     }
-    .header-social-text { display: none; }
-    .header-yt-avatar { width: 22px !important; height: 22px !important; }
-    .header-ig-svg { width: 18px; height: 18px; }
-    .header-user-area { width: 100%; gap: 8px; justify-content: space-between; }
-    .game-badge { font-size: 11px; padding: 3px 8px; letter-spacing: 1px; }
-    .record-nav-btn, .nav-login-btn { font-size: 12px !important; padding: 6px 10px !important; }
-    .logged-in-badge { font-size: 12px; }
-    .user-session-bar { gap: 6px; flex-wrap: wrap; }
-
-    /* ─ Hero: portrait-optimized single column ─ */
-    .hero {
+    .header-social-text {
+        display: inline !important;
+        font-size: 10px;
+    }
+    .header-yt-avatar {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    .header-ig-svg {
+        width: 15px;
+        height: 15px;
+    }
+    .header-user-area {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        text-align: center;
-        padding: 16px 14px 14px;
-        gap: 10px;
+        gap: 6px;
+        flex-wrap: wrap;
     }
-    .speed-gauge { width: 110px; margin: 0 auto; }
-    .hero-text { width: 100%; }
-    .hero-eyebrow { font-size: 11px; margin-bottom: 4px; letter-spacing: 2.5px; }
-    .hero-title { font-size: clamp(42px, 12vw, 64px) !important; line-height: 0.85; letter-spacing: -2px; }
-    .hero-subtitle { font-size: clamp(16px, 5.5vw, 26px) !important; letter-spacing: 4px; margin-top: 4px; }
-    .hero-tagline { font-size: 10px !important; letter-spacing: 2px; margin-top: 4px; }
-    .tricolor-bar { width: 70px; height: 4px; margin: 10px auto 8px; }
+    .game-badge {
+        font-size: 9.5px;
+        padding: 2px 7px;
+        letter-spacing: 1px;
+    }
+    .record-nav-btn, .nav-login-btn {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+    }
+    .logged-in-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
 
-    /* social pills compact */
-    .hero-social-strip { margin: 10px 0 4px; gap: 8px; }
-    .social-strip-label { font-size: 10px; letter-spacing: 1.5px; }
-    .social-pills-row { gap: 8px; }
-    .hero-social-pill { padding: 6px 12px; gap: 8px; }
-    .pill-avatar { width: 26px; height: 26px; }
-    .ig-symbol-box { width: 26px; height: 26px; }
-    .pill-name { font-size: 13px; }
-    .pill-action { font-size: 10px; }
+    /* ─ Hero: PC layout (Speedometer Gauge on Left, Hero Title/Stats on Right) ─ */
+    .hero {
+        display: grid !important;
+        grid-template-columns: 110px 1fr !important;
+        grid-template-rows: auto auto !important;
+        gap: 10px 14px !important;
+        padding: 16px 12px 14px !important;
+        align-items: center !important;
+        text-align: left !important;
+    }
+    .speed-gauge {
+        grid-column: 1 !important;
+        grid-row: 1 / 2 !important;
+        width: 105px !important;
+        margin: 0 !important;
+    }
+    .hero-text {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        width: 100% !important;
+    }
+    .hero-eyebrow {
+        font-size: 9.5px !important;
+        letter-spacing: 2px !important;
+        margin-bottom: 2px !important;
+    }
+    .hero-title {
+        font-size: clamp(34px, 8.5vw, 52px) !important;
+        line-height: 0.85 !important;
+        letter-spacing: -1.5px !important;
+    }
+    .hero-subtitle {
+        font-size: clamp(14px, 3.8vw, 22px) !important;
+        letter-spacing: 3px !important;
+        margin-top: 3px !important;
+    }
+    .hero-tagline {
+        font-size: 8px !important;
+        letter-spacing: 1.5px !important;
+        margin-top: 3px !important;
+    }
+    .tricolor-bar {
+        width: 100% !important;
+        max-width: 120px !important;
+        height: 3px !important;
+        margin: 6px 0 !important;
+    }
+
+    /* Hero social pills */
+    .hero-social-strip {
+        margin: 8px 0 4px !important;
+        gap: 5px !important;
+    }
+    .social-strip-label {
+        font-size: 8.5px !important;
+        letter-spacing: 1px !important;
+    }
+    .social-pills-row {
+        gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    .hero-social-pill {
+        padding: 4px 8px !important;
+        gap: 6px !important;
+        border-radius: 4px !important;
+    }
+    .pill-avatar, .ig-symbol-box {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    .pill-name {
+        font-size: 11px !important;
+    }
+    .pill-action {
+        font-size: 8.5px !important;
+    }
 
     /* CTA buttons */
-    .hero-cta-wrapper { flex-direction: column; width: 100%; gap: 8px; margin-top: 10px; }
-    .hero-main-btn, .hero-sub-btn { width: 100%; justify-content: center; font-size: 13px; padding: 11px 14px; letter-spacing: 1.5px; }
+    .hero-cta-wrapper {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: 8px !important;
+    }
+    .hero-main-btn, .hero-sub-btn {
+        width: auto !important;
+        font-size: 11px !important;
+        padding: 7px 10px !important;
+        letter-spacing: 1px !important;
+    }
 
-    /* stats strip */
-    .stats-strip { justify-content: space-around; max-width: 100%; width: 100%; padding: 10px 12px; gap: 0; }
-    .stat-num { font-size: 24px !important; }
-    .stat-unit { font-size: 11px; }
-    .stat-label { font-size: 9px !important; letter-spacing: 1.5px; }
-    .stat-divider { height: 34px; margin: 0 8px; }
+    /* Stats strip across bottom */
+    .stats-strip {
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 8px 10px !important;
+        margin-top: 2px !important;
+        border-radius: 4px !important;
+    }
+    .stat-num {
+        font-size: 20px !important;
+    }
+    .stat-unit {
+        font-size: 9.5px !important;
+    }
+    .stat-label {
+        font-size: 8px !important;
+        letter-spacing: 1px !important;
+    }
+    .stat-divider {
+        height: 26px !important;
+        margin: 0 6px !important;
+    }
 
     /* ─ Main Content ─ */
-    .main-content { padding: 0 10px 14px; }
+    .main-content {
+        padding: 0 10px 18px;
+    }
 
     /* ─ Section Header ─ */
-    .section-header { padding: 12px 14px; margin-bottom: 12px; }
-    .section-title { font-size: clamp(16px, 5vw, 22px) !important; }
-    .count-num { font-size: 26px; }
-
-    /* ─ Filter Bar: 2-column grid on mobile ─ */
-    .filter-bar { flex-direction: column; gap: 8px; margin-bottom: 14px; padding: 0; }
-    .search-box { min-width: unset; width: 100%; }
-    .search-box input { font-size: 15px; padding: 10px 0; }
-    .filter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-    .filter-group select { width: 100%; font-size: 13px; padding: 9px 10px; height: 40px; box-sizing: border-box; }
-    .filter-submit-btn { grid-column: 1 / -1; width: 100%; justify-content: center; padding: 10px; font-size: 13px; }
-
-    /* ─ Podium Section ─ */
-    .podium-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-    .podium-card { margin-bottom: 0 !important; padding: 14px 12px; border-radius: 8px; }
-    .podium-2 { order: 2; }
-    .podium-1 { order: 1; }
-    .podium-3 { order: 3; }
-    .player-avatar-wrap.avatar-gold { width: 76px !important; height: 76px !important; margin-bottom: 8px; }
-    .player-avatar-wrap.avatar-silver { width: 64px !important; height: 64px !important; margin-bottom: 8px; }
-    .player-avatar-wrap.avatar-bronze { width: 60px !important; height: 60px !important; margin-bottom: 8px; }
-    .podium-medal { font-size: 28px; margin-bottom: 6px; }
-    .podium-1 .podium-medal { font-size: 36px; }
-    .podium-tag { font-size: 15px !important; }
-    .podium-1 .podium-tag { font-size: 17px !important; }
-    .podium-speed { font-size: 18px !important; }
-    .podium-1 .podium-speed { font-size: 22px !important; }
-    .podium-char { font-size: 10px !important; }
-    .podium-rank { font-size: 50px; top: 4px; right: 6px; }
-    .podium-1 .podium-rank { font-size: 62px; }
-    .podium-crown-banner, .podium-runner-banner { font-size: 10px; padding: 2px 10px; margin-bottom: 6px; }
-
-    /* ─ Leaderboard Table: card layout on mobile ─ */
-    .table-wrapper {
-        border-radius: 8px;
-        overflow-x: hidden;
-        border: 1px solid rgba(255,21,21,0.2);
+    .section-header {
+        padding: 10px 12px;
+        margin-bottom: 10px;
     }
-    table { min-width: unset !important; width: 100%; }
-    thead { display: none; }
-    tbody tr {
+    .section-eyebrow {
+        font-size: 9.5px;
+        letter-spacing: 2px;
+    }
+    .section-title {
+        font-size: clamp(15px, 4vw, 20px) !important;
+    }
+    .count-num {
+        font-size: 22px;
+    }
+    .count-label {
+        font-size: 8.5px;
+    }
+
+    /* ─ Filter Bar ─ */
+    .filter-bar {
         display: flex;
-        flex-direction: column;
-        padding: 12px 14px;
-        border-bottom: 1px solid rgba(255,21,21,0.12);
-        position: relative;
-        background: var(--bg-table-row);
-        gap: 4px;
-        animation: rowSlideIn 0.4s ease-out both;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
     }
-    tbody tr:nth-child(even) { background: var(--bg-table-row-alt); }
-    tbody tr:nth-child(1) {
-        background: rgba(255,215,0,0.06) !important;
-        border-left: 4px solid var(--accent-gold) !important;
-        border-bottom-color: rgba(255,215,0,0.2) !important;
+    .search-box {
+        flex: 1 1 100%;
+        min-width: 100%;
+        padding: 0 10px;
     }
-    tbody tr:nth-child(2) {
-        background: rgba(192,192,192,0.05) !important;
-        border-left: 4px solid var(--accent-silver) !important;
+    .search-box input {
+        font-size: 13px;
+        padding: 8px 0;
     }
-    tbody tr:nth-child(3) {
-        background: rgba(205,127,50,0.05) !important;
-        border-left: 4px solid var(--accent-bronze) !important;
+    .filter-group {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .filter-group select {
+        flex: 1;
+        min-width: 120px;
+        font-size: 11.5px;
+        padding: 8px 24px 8px 10px;
+        height: 36px;
+    }
+    .filter-submit-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* ─ PODIUM: EXACT PC 3-COLUMN SIDE-BY-SIDE LAYOUT SCALED TO MOBILE RATIO ─ */
+    .podium-section {
+        display: grid !important;
+        grid-template-columns: 1fr 1.15fr 1fr !important;
+        gap: 6px !important;
+        margin-bottom: 16px !important;
+        align-items: end !important;
+    }
+    .podium-card {
+        padding: 12px 4px 10px !important;
+        border-radius: 8px !important;
+        text-align: center !important;
+        overflow: hidden !important;
+        position: relative !important;
+        margin-bottom: 0 !important;
+        box-sizing: border-box !important;
+    }
+    .podium-1 {
+        order: unset !important;
+        padding: 18px 4px 14px !important;
+    }
+    .podium-2 {
+        order: unset !important;
+        margin-bottom: 8px !important;
+    }
+    .podium-3 {
+        order: unset !important;
+        margin-bottom: 4px !important;
+    }
+    .podium-medal {
+        font-size: 20px !important;
+        margin-bottom: 4px !important;
+    }
+    .podium-1 .podium-medal {
+        font-size: 26px !important;
+        margin-bottom: 5px !important;
+    }
+    .player-avatar-wrap.avatar-gold {
+        width: 52px !important;
+        height: 52px !important;
+        margin: 0 auto 5px !important;
+        border-width: 2.5px !important;
+    }
+    .player-avatar-wrap.avatar-silver {
+        width: 44px !important;
+        height: 44px !important;
+        margin: 0 auto 4px !important;
+        border-width: 2px !important;
+    }
+    .player-avatar-wrap.avatar-bronze {
+        width: 40px !important;
+        height: 40px !important;
+        margin: 0 auto 4px !important;
+        border-width: 2px !important;
+    }
+    .avatar-monogram {
+        font-size: 15px !important;
+    }
+    .podium-1 .avatar-monogram {
+        font-size: 18px !important;
+    }
+    .podium-crown-banner, .podium-runner-banner {
+        font-size: 7.5px !important;
+        padding: 2px 4px !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 4px !important;
+        white-space: nowrap !important;
+        border-radius: 12px !important;
+    }
+    .podium-tag {
+        font-size: 11px !important;
+        letter-spacing: 0.5px !important;
+        margin-bottom: 2px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        display: block !important;
+    }
+    .podium-1 .podium-tag {
+        font-size: 12.5px !important;
+    }
+    .podium-speed {
+        font-size: 13px !important;
+        letter-spacing: 0.5px !important;
+        white-space: nowrap !important;
+    }
+    .podium-1 .podium-speed {
+        font-size: 16px !important;
+    }
+    .podium-char {
+        font-size: 8px !important;
+        letter-spacing: 0.2px !important;
+        margin-top: 2px !important;
+        line-height: 1.15 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    .podium-state {
+        font-size: 8px !important;
+        margin-top: 2px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+    .podium-rank {
+        font-size: 28px !important;
+        top: 2px !important;
+        right: 4px !important;
+        opacity: 0.1 !important;
+    }
+    .podium-1 .podium-rank {
+        font-size: 38px !important;
+    }
+
+    /* ─ LEADERBOARD TABLE: EXACT PC TABLE STRUCTURE (NO CARDS) SCALED TO MOBILE RATIO ─ */
+    .table-wrapper {
+        border-radius: 6px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border: 1px solid rgba(255, 21, 21, 0.25) !important;
+        box-shadow: 0 0 30px rgba(255, 21, 21, 0.08) !important;
+        margin-bottom: 16px;
+    }
+    table {
+        width: 100% !important;
+        min-width: 480px !important; /* Preserves desktop columns with smooth horizontal scroll */
+        border-collapse: collapse !important;
+        display: table !important;
+    }
+    thead {
+        display: table-header-group !important;
+        background: var(--bg-table-head) !important;
+    }
+    tbody {
+        display: table-row-group !important;
+    }
+    tbody tr {
+        display: table-row !important;
+        position: static !important;
+        padding: 0 !important;
+        border-bottom: 1px solid var(--border-table) !important;
+        animation: rowSlideIn 0.3s ease-out both !important;
     }
     tbody tr td {
-        display: flex;
-        align-items: center;
-        border: none !important;
-        padding: 3px 0 !important;
-        font-size: 13px;
-        text-align: left;
-        background: transparent !important;
-        box-shadow: none !important;
+        display: table-cell !important;
+        position: static !important;
+        padding: 6px 5px !important;
+        font-size: 11px !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        border-bottom: 1px solid var(--border-table) !important;
+    }
+    /* Cancel out the mobile card ::before labels */
+    tbody tr td:nth-child(3)::before,
+    tbody tr td:nth-child(5)::before {
+        display: none !important;
+        content: none !important;
     }
     tbody tr td:first-child {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        padding: 0 !important;
-        border: none !important;
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        padding: 6px 4px !important;
     }
-    tbody tr td:nth-child(2) .player-tag { font-size: 15px !important; }
-    tbody tr td:nth-child(2) { padding-right: 52px !important; }
-    tbody tr td:nth-child(3) { padding: 0 !important; }
-    tbody tr td:nth-child(3) .speed-val { font-size: 20px !important; }
-    tbody tr td:nth-child(4) .char-cell { gap: 8px; }
-    tbody tr td:nth-child(4) .char-img-wrap { width: 32px; height: 32px; }
-    tbody tr td:nth-child(4) .char-name { font-size: 12px; }
-    tbody tr td:nth-child(4) .char-setup { font-size: 10px; }
-    tbody tr td:nth-child(5) .location-state { font-size: 12px; }
-    tbody tr td:nth-child(5) .location-city { font-size: 10px; }
-    tbody tr td:nth-child(6) { padding-top: 4px !important; }
-    tbody tr td:nth-child(6) .proof-btn { padding: 6px 12px; font-size: 11px; min-height: 32px; }
-    tbody tr td:nth-child(3)::before {
-        content: "SPEED: ";
-        font-family: 'Barlow Condensed', sans-serif;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-muted);
-        letter-spacing: 1px;
-        margin-right: 6px;
-        flex-shrink: 0;
+    tbody tr td:nth-child(2) {
+        padding-right: 5px !important;
     }
-    tbody tr td:nth-child(5)::before {
-        content: "📍 ";
-        font-size: 11px;
-        margin-right: 4px;
-        flex-shrink: 0;
+    th {
+        padding: 8px 5px !important;
+        font-size: 9.5px !important;
+        letter-spacing: 1px !important;
+        text-align: center !important;
+        white-space: nowrap !important;
     }
-    .rank-cell { width: 34px; height: 34px; font-size: 14px; }
-    .player-avatar-wrap.table-avatar { width: 34px; height: 34px; }
-    .player-tag-cell { gap: 8px; }
+    .rank-cell {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 11px !important;
+    }
+    .player-avatar-wrap.table-avatar {
+        width: 24px !important;
+        height: 24px !important;
+    }
+    .player-tag-cell {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        text-align: left !important;
+    }
+    .player-tag {
+        font-size: 11.5px !important;
+        letter-spacing: 0.5px !important;
+    }
+    .speed-val {
+        font-size: 13px !important;
+        letter-spacing: 0.5px !important;
+    }
+    .char-cell {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        min-width: 120px !important;
+        text-align: left !important;
+    }
+    .char-img-wrap {
+        width: 26px !important;
+        height: 26px !important;
+        flex-shrink: 0 !important;
+    }
+    .char-name {
+        font-size: 10px !important;
+        line-height: 1.1 !important;
+    }
+    .char-setup {
+        font-size: 8px !important;
+    }
+    .location-cell {
+        font-size: 10px !important;
+    }
+    .location-state {
+        font-size: 10.5px !important;
+    }
+    .location-city {
+        font-size: 8px !important;
+    }
+    .proof-btn {
+        padding: 4px 8px !important;
+        font-size: 9.5px !important;
+        letter-spacing: 0.5px !important;
+        min-height: unset !important;
+        border-radius: 3px !important;
+        white-space: nowrap !important;
+    }
 
     /* ─ About Section ─ */
-    .about-section { padding: 24px 14px; }
-    .about-title { font-size: clamp(18px, 5vw, 24px); letter-spacing: 2px; }
-    .about-text { font-size: 13px; margin-bottom: 20px; }
-    .about-features { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .feature-item { padding: 14px 10px; }
-    .feature-icon { font-size: 22px !important; }
-    .feature-text { font-size: 12px !important; }
+    .about-section { padding: 20px 12px; }
+    .about-title { font-size: 16px; letter-spacing: 1.5px; }
+    .about-text { font-size: 12px; margin-bottom: 16px; }
+    .about-features { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .feature-item { padding: 10px 8px; }
+    .feature-icon { font-size: 18px !important; }
+    .feature-text { font-size: 11px !important; }
 
-    /* ─ Modals: bottom-sheet ─ */
+    /* ─ Modals: responsive bottom-sheet ─ */
     .modal-backdrop { align-items: flex-end !important; padding: 0; }
     .modal-content {
         width: 100% !important;
@@ -3757,58 +4053,68 @@ button, a, select, input, .proof-btn {
     .login-prompt-icon { font-size: 36px; }
 
     /* ─ Floating Profile Button ─ */
-    .floating-profile-btn { bottom: 16px; right: 16px; padding: 11px 14px; font-size: 12px; gap: 5px; border-radius: 28px; }
-    .btn-text { font-size: 11px !important; }
-    .btn-fire { font-size: 14px; }
+    .floating-profile-btn { bottom: 14px; right: 14px; padding: 9px 12px; font-size: 11px; gap: 5px; border-radius: 24px; }
+    .btn-text { font-size: 10px !important; }
+    .btn-fire { font-size: 12px; }
 
     /* ─ Footer ─ */
-    .site-footer { padding: 20px 14px 16px; }
-    .footer-top { flex-direction: column; align-items: flex-start; gap: 16px; padding-bottom: 16px; }
-    .footer-brand .footer-logo { font-size: 20px; }
-    .footer-tagline { font-size: 12px; }
-    .footer-social-links { flex-direction: column; gap: 8px; width: 100%; }
-    .footer-social-btn { width: 100%; justify-content: flex-start; padding: 8px 14px; }
-    .footer-btn-title { font-size: 13px; }
-    .footer-btn-sub { font-size: 10px; }
-    .footer-bottom { padding-top: 14px; }
-    .footer-bottom p { font-size: 11px; }
+    .site-footer { padding: 18px 12px 14px; }
+    .footer-top { flex-direction: column; align-items: flex-start; gap: 12px; padding-bottom: 12px; }
+    .footer-brand .footer-logo { font-size: 18px; }
+    .footer-tagline { font-size: 11px; }
+    .footer-social-links { flex-direction: row; flex-wrap: wrap; gap: 6px; width: 100%; }
+    .footer-social-btn { padding: 6px 10px; font-size: 11px; }
+    .footer-btn-title { font-size: 11.5px; }
+    .footer-btn-sub { font-size: 9px; }
+    .footer-bottom { padding-top: 10px; }
+    .footer-bottom p { font-size: 10px; }
 }
 
 /* ── SMALL MOBILE (max-width: 480px) ─────────────────────── */
 @media (max-width: 480px) {
-    .logo { font-size: 16px !important; }
-    .hero { padding: 14px 12px 12px; gap: 8px; }
-    .hero-title { font-size: clamp(36px, 12vw, 52px) !important; }
-    .speed-gauge { width: 95px; }
-    .stat-num { font-size: 20px !important; }
-    .hero-cta-wrapper { gap: 6px; margin-top: 8px; }
+    .logo { font-size: 15px !important; }
+    .hero {
+        grid-template-columns: 95px 1fr !important;
+        gap: 8px 10px !important;
+        padding: 12px 8px 10px !important;
+    }
+    .speed-gauge { width: 90px !important; }
+    .hero-title { font-size: clamp(30px, 9vw, 42px) !important; }
+    .hero-subtitle { font-size: 13px !important; }
+    .stat-num { font-size: 18px !important; }
+    .stat-label { font-size: 7.5px !important; }
 
-    .podium-section { gap: 8px; }
-    .podium-card { padding: 12px 10px; }
-    .podium-tag { font-size: 14px !important; }
-    .podium-speed { font-size: 16px !important; }
-    .podium-1 .podium-speed { font-size: 20px !important; }
+    .podium-section { gap: 4px !important; }
+    .podium-card { padding: 10px 2px 8px !important; }
+    .podium-1 { padding: 14px 3px 10px !important; }
+    .player-avatar-wrap.avatar-gold { width: 46px !important; height: 46px !important; }
+    .player-avatar-wrap.avatar-silver { width: 40px !important; height: 40px !important; }
+    .player-avatar-wrap.avatar-bronze { width: 36px !important; height: 36px !important; }
+    .podium-medal { font-size: 17px !important; }
+    .podium-1 .podium-medal { font-size: 22px !important; }
+    .podium-tag { font-size: 10px !important; }
+    .podium-1 .podium-tag { font-size: 11.5px !important; }
+    .podium-speed { font-size: 11.5px !important; }
+    .podium-1 .podium-speed { font-size: 14px !important; }
 
-    .about-features { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .modal-content { padding: 14px 12px !important; }
-    .form-group input,
-    .form-group select { height: 44px; padding: 10px; }
-
-    /* Filter: single column on very small phones */
-    .filter-group { grid-template-columns: 1fr; }
-    .filter-group select { height: 38px; }
+    table { min-width: 440px !important; }
+    th { font-size: 9px !important; padding: 6px 3px !important; }
+    tbody tr td { font-size: 10px !important; padding: 5px 3px !important; }
 }
 
 /* ── VERY SMALL MOBILE (max-width: 360px) ────────────────── */
 @media (max-width: 360px) {
-    html { font-size: 14px; }
-    .top-bar { padding: 8px 10px; }
-    .hero { padding: 12px 10px 10px; }
-    .hero-title { font-size: clamp(30px, 13vw, 44px) !important; }
-    .main-content { padding: 0 8px 12px; }
-    .modal-content { padding: 12px 10px !important; }
-    .speed-gauge { width: 85px; }
-    .floating-profile-btn { padding: 9px 12px; }
+    html { font-size: 13px; }
+    .hero {
+        grid-template-columns: 85px 1fr !important;
+        gap: 6px 8px !important;
+    }
+    .speed-gauge { width: 80px !important; }
+    .hero-title { font-size: 26px !important; }
+    .podium-section { gap: 3px !important; }
+    .podium-tag { font-size: 9.5px !important; }
+    .podium-speed { font-size: 11px !important; }
+    table { min-width: 420px !important; }
 }
 
 /* ── CHARACTER IMAGE: TRANSPARENT PNG ONLY ───────────────── */
