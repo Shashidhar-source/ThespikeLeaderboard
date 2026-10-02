@@ -84,6 +84,118 @@ export function inspectProofLink(urlStr) {
     return { isValid:true, isFake:false, warning:true, platform:"External Link", icon:"🔗", status:"unverified_domain", message:"⚠️ External link: Not a recognized standard video platform." };
 }
 
+/* ── FIREBASE DAILY QUOTA GUARD (MAX 100 OPS/DAY) & LOGIN LIMITS ──
+   Guarantees that cloud operations are strictly capped at 100 per day
+   to ensure you are NEVER billed or charged by Firebase. */
+export const FIREBASE_DAILY_LIMIT = 100;
+export const DAILY_LOGIN_LIMIT    = 10;
+
+const FIREBASE_OPS_KEY   = 'spike_firebase_daily_ops';
+const LOGIN_ATTEMPTS_KEY = 'spike_daily_login_attempts';
+
+function getTodayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+export function getFirebaseDailyUsage() {
+    const today = getTodayKey();
+    try {
+        const raw = localStorage.getItem(FIREBASE_OPS_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data && data.date === today) {
+                const count = parseInt(data.count, 10) || 0;
+                return {
+                    date: today,
+                    count,
+                    limit: FIREBASE_DAILY_LIMIT,
+                    remaining: Math.max(0, FIREBASE_DAILY_LIMIT - count),
+                    isExceeded: count >= FIREBASE_DAILY_LIMIT
+                };
+            }
+        }
+    } catch(e) {}
+    return {
+        date: today,
+        count: 0,
+        limit: FIREBASE_DAILY_LIMIT,
+        remaining: FIREBASE_DAILY_LIMIT,
+        isExceeded: false
+    };
+}
+
+export function checkAndIncrementFirebaseOp(opName = 'operation') {
+    const usage = getFirebaseDailyUsage();
+    if (usage.isExceeded) {
+        console.warn(`[Firebase Quota Guard] 🛑 Daily limit of ${FIREBASE_DAILY_LIMIT} operations reached for ${usage.date}. Blocking ${opName} to prevent cloud billing.`);
+        return false;
+    }
+
+    const newCount = usage.count + 1;
+    try {
+        localStorage.setItem(FIREBASE_OPS_KEY, JSON.stringify({
+            date: usage.date,
+            count: newCount,
+            lastOp: opName,
+            lastAt: new Date().toISOString()
+        }));
+    } catch(e) {}
+
+    console.log(`[Firebase Quota Guard] ⚡ ${opName} logged (${newCount}/${FIREBASE_DAILY_LIMIT} used today, ${FIREBASE_DAILY_LIMIT - newCount} left).`);
+    return true;
+}
+
+export function getLoginDailyUsage() {
+    const today = getTodayKey();
+    try {
+        const raw = localStorage.getItem(LOGIN_ATTEMPTS_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            if (data && data.date === today) {
+                const count = parseInt(data.count, 10) || 0;
+                return {
+                    date: today,
+                    count,
+                    limit: DAILY_LOGIN_LIMIT,
+                    remaining: Math.max(0, DAILY_LOGIN_LIMIT - count),
+                    isExceeded: count >= DAILY_LOGIN_LIMIT
+                };
+            }
+        }
+    } catch(e) {}
+    return {
+        date: today,
+        count: 0,
+        limit: DAILY_LOGIN_LIMIT,
+        remaining: DAILY_LOGIN_LIMIT,
+        isExceeded: false
+    };
+}
+
+export function checkAndIncrementLoginAttempt(type = 'login') {
+    const usage = getLoginDailyUsage();
+    if (usage.isExceeded) {
+        console.warn(`[Login Rate Limit] 🛑 Daily limit of ${DAILY_LOGIN_LIMIT} logins reached for ${usage.date}. Blocking ${type}.`);
+        return false;
+    }
+
+    const newCount = usage.count + 1;
+    try {
+        localStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify({
+            date: usage.date,
+            count: newCount,
+            lastType: type,
+            lastAt: new Date().toISOString()
+        }));
+    } catch(e) {}
+
+    return true;
+}
+
 /* ── SAFE KEY HELPER ─────────────────────────────────────── */
 function safeKey(str) {
     return (str || '').trim().toUpperCase().replace(/[.#$[\]/]/g, '_');
@@ -99,6 +211,13 @@ export function getPlayerCloudKey(tag, character) {
 export async function savePlayerToCloud(playerData) {
     const tag = (playerData.tag || '').trim();
     if (!tag) return false;
+
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('savePlayerToCloud')) {
+        console.warn('[Firebase Quota Guard] savePlayerToCloud skipped (daily 100 limit reached). Record is safely saved in local storage.');
+        return false;
+    }
+
     const char = (playerData.character || 'BLACK THUNDER NISHIKAWA').trim();
     const key = getPlayerCloudKey(tag, char);
 
@@ -142,6 +261,13 @@ export async function savePlayerToCloud(playerData) {
 /* ── USER PROFILE CLOUD SYNC ─────────────────────────────── */
 export async function saveUserProfile(firebaseUid, profileData) {
     if (!firebaseUid) return false;
+
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('saveUserProfile')) {
+        console.warn('[Firebase Quota Guard] saveUserProfile skipped (daily 100 limit reached). Profile stored locally.');
+        return false;
+    }
+
     const clean = {
         ign:       profileData.ign || '',
         email:     profileData.email || '',
@@ -174,6 +300,13 @@ export async function saveUserProfile(firebaseUid, profileData) {
 
 export async function fetchUserProfile(firebaseUid) {
     if (!firebaseUid) return null;
+
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('fetchUserProfile')) {
+        console.warn('[Firebase Quota Guard] fetchUserProfile skipped (daily 100 limit reached). Using local profile cache.');
+        return null;
+    }
+
     try {
         const snap = await get(ref(rtdb, `users/${firebaseUid}`));
         if (snap.exists()) return snap.val();
@@ -189,6 +322,12 @@ export async function fetchUserProfile(firebaseUid) {
 
 /* ── LEADERBOARD FETCH & SUBSCRIBE (RTDB) ────────────────── */
 export async function fetchPlayersFromCloud() {
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('fetchPlayersFromCloud')) {
+        console.warn('[Firebase Quota Guard] fetchPlayersFromCloud skipped (daily 100 limit reached). Using local players cache.');
+        return [];
+    }
+
     try {
         const snap = await get(ref(rtdb, 'players'));
         if (snap.exists()) {
@@ -208,6 +347,12 @@ export async function fetchPlayersFromCloud() {
 }
 
 export function subscribeToCloudLeaderboard(callback) {
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('subscribeToCloudLeaderboard')) {
+        console.warn('[Firebase Quota Guard] Realtime listener skipped (daily 100 limit reached). Serving local players cache.');
+        return null;
+    }
+
     try {
         const playersRef = ref(rtdb, 'players');
         // onValue fires immediately with current data AND on every change
@@ -233,6 +378,13 @@ export function subscribeToCloudLeaderboard(callback) {
 
 export async function deletePlayerFromCloud(tag, character) {
     if (!tag) return false;
+
+    // Strict Daily Firebase Quota Check (Max 100/day)
+    if (!checkAndIncrementFirebaseOp('deletePlayerFromCloud')) {
+        console.warn('[Firebase Quota Guard] deletePlayerFromCloud skipped (daily 100 limit reached).');
+        return false;
+    }
+
     const sTag = safeKey(tag);
     const keysToDelete = [];
     if (character) {
@@ -261,3 +413,4 @@ export {
     updateProfile, sendPasswordResetEmail,
     GoogleAuthProvider, signInWithPopup
 };
+

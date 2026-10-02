@@ -7,7 +7,9 @@ import {
     inspectProofLink,
     savePlayerToCloud,
     fetchPlayersFromCloud,
-    deletePlayerFromCloud
+    deletePlayerFromCloud,
+    FIREBASE_DAILY_LIMIT,
+    getFirebaseDailyUsage
 } from "./firebase-config.js";
 
 const STORAGE_KEY = 'spike-india-players';
@@ -252,6 +254,20 @@ function updateStats() {
     if (statTopPlayer) statTopPlayer.textContent = p1 ? `👑 #1 ${p1.tag}` : 'No Record';
     if (statRunnerSpeed) statRunnerSpeed.textContent = p2 ? `${p2.speed} KM/H` : '---';
     if (statRunnerPlayer) statRunnerPlayer.textContent = p2 ? `⚡ #2 ${p2.tag}` : 'No Runner Up';
+
+    const statFirebaseOps = document.getElementById('statFirebaseOps');
+    const quotaCard = document.getElementById('adminFirebaseQuotaCard');
+    const fbUsage = getFirebaseDailyUsage();
+    if (statFirebaseOps) {
+        statFirebaseOps.textContent = `${fbUsage.count} / ${FIREBASE_DAILY_LIMIT}`;
+    }
+    if (quotaCard) {
+        if (fbUsage.isExceeded) {
+            quotaCard.classList.add('exceeded');
+        } else {
+            quotaCard.classList.remove('exceeded');
+        }
+    }
 }
 
 // ── IMAGE HELPER ────────────────────────────────────────────

@@ -4176,6 +4176,552 @@ img[src*="ISABEL"] {
     .hero-social-strip { display: none; }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   MANDATORY SOCIAL RULES & VERIFICATION MODAL STYLES
+   ══════════════════════════════════════════════════════════════ */
+.submission-rules-pill {
+    background: rgba(255, 170, 0, 0.08);
+    border: 1px dashed rgba(255, 170, 0, 0.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    color: #ffca28;
+    line-height: 1.4;
+}
+
+.submission-rules-pill.verified {
+    background: rgba(0, 230, 118, 0.08);
+    border-color: rgba(0, 230, 118, 0.35);
+    color: #00e676;
+}
+
+.rules-pill-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+[data-theme="light"] .submission-rules-pill {
+    background: #fff8e1;
+    border-color: #ffd54f;
+    color: #b78103;
+}
+
+[data-theme="light"] .submission-rules-pill.verified {
+    background: #e8f5e9;
+    border-color: #81c784;
+    color: #2e7d32;
+}
+
+/* Modal Backdrop for Rules */
+.modal-backdrop.social-rules-backdrop {
+    z-index: 10005 !important; /* Above profile modal */
+    background: rgba(5, 6, 10, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.modal-content.social-rules-modal-content {
+    background: linear-gradient(175deg, #13151f 0%, #0c0e14 100%);
+    border: 1px solid rgba(255, 21, 21, 0.45);
+    border-radius: 16px;
+    box-shadow: 0 25px 85px rgba(0, 0, 0, 0.95), 0 0 50px rgba(255, 21, 21, 0.22);
+    width: 100%;
+    max-width: 580px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 26px 24px;
+    animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    position: relative;
+}
+
+[data-theme="light"] .modal-content.social-rules-modal-content {
+    background: #ffffff;
+    border-color: rgba(255, 21, 21, 0.35);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18), 0 0 35px rgba(255, 21, 21, 0.12);
+}
+
+.social-rules-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    padding-right: 0 !important; /* No close button */
+}
+
+[data-theme="light"] .social-rules-header {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.social-rules-notice {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    background: rgba(255, 21, 21, 0.06);
+    border: 1px solid rgba(255, 21, 21, 0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+[data-theme="light"] .social-rules-notice {
+    background: #fff5f5;
+    border-color: #ffd0d0;
+}
+
+/* Speed Record Summary Banner inside Rules Modal */
+.social-speed-summary-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+}
+
+[data-theme="light"] .social-speed-summary-pill {
+    background: #f7f7f9;
+    border-color: #e2e2ea;
+}
+
+.summary-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.summary-lbl {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+}
+
+.summary-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text-primary);
+}
+
+.summary-val.speed-val {
+    color: var(--accent-red);
+    font-size: 18px;
+    text-shadow: 0 0 10px rgba(255, 21, 21, 0.4);
+}
+
+.summary-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .summary-divider {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* Social Steps List */
+.social-steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.social-step-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: all 0.25s ease;
+}
+
+[data-theme="light"] .social-step-card {
+    background: #fafafc;
+    border-color: #e5e5ec;
+}
+
+.social-step-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .social-step-card:hover {
+    border-color: #d0d0d8;
+    background: #f4f4f7;
+}
+
+.social-step-card.completed-card {
+    border-color: rgba(0, 230, 118, 0.4);
+    background: rgba(0, 230, 118, 0.04);
+}
+
+.social-step-card.waived {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.step-card-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.social-channel-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.social-channel-avatar.yt-avatar-box {
+    border-color: rgba(255, 0, 0, 0.4);
+}
+
+.social-channel-avatar.ig-avatar-box {
+    border-color: rgba(220, 39, 67, 0.4);
+}
+
+.social-step-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.social-platform-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.step-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.step-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+}
+
+.step-num-pill {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 1px 7px;
+    border-radius: 12px;
+    background: rgba(255, 21, 21, 0.15);
+    color: var(--accent-red);
+}
+
+.step-card-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.step-card-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.step-status-pill {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.step-status-pill.pending {
+    background: rgba(255, 170, 0, 0.12);
+    color: #ffaa00;
+    border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.step-status-pill.completed {
+    background: rgba(0, 230, 118, 0.15);
+    color: #00e676;
+    border: 1px solid rgba(0, 230, 118, 0.4);
+}
+
+.step-status-pill.waived {
+    background: rgba(0, 229, 255, 0.12);
+    color: #00e5ff;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+}
+
+/* Verification Action Buttons */
+.step-card-action {
+    flex-shrink: 0;
+}
+
+.social-verify-btn {
+    padding: 9px 16px;
+    border-radius: 7px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.social-verify-btn.yt-verify-btn {
+    background: linear-gradient(135deg, #ff0000, #c80000);
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgba(255, 0, 0, 0.35);
+}
+
+.social-verify-btn.yt-verify-btn:hover {
+    box-shadow: 0 5px 18px rgba(255, 0, 0, 0.55);
+    transform: translateY(-1px);
+}
+
+.social-verify-btn.ig-verify-btn {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgba(220, 39, 67, 0.35);
+}
+
+.social-verify-btn.ig-verify-btn:hover {
+    box-shadow: 0 5px 18px rgba(220, 39, 67, 0.55);
+    transform: translateY(-1px);
+}
+
+.social-verify-btn.verified {
+    background: linear-gradient(135deg, #00c853, #009624) !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 12px rgba(0, 200, 83, 0.35) !important;
+}
+
+.social-verify-btn.disabled-waived {
+    opacity: 0.4;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-muted) !important;
+    box-shadow: none !important;
+}
+
+/* Instagram Exemption Checkbox */
+.no-instagram-container {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .no-instagram-container {
+    background: #f7f7fa;
+    border-color: #dcdce4;
+}
+
+.no-instagram-container:hover {
+    border-color: rgba(255, 21, 21, 0.35);
+}
+
+.no-instagram-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.social-rule-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.custom-check-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s ease;
+    color: transparent;
+}
+
+[data-theme="light"] .custom-check-box {
+    border-color: #b0b0bc;
+    background: #ffffff;
+}
+
+.social-rule-checkbox:checked + .custom-check-box {
+    background: linear-gradient(135deg, #00c853, #009624);
+    border-color: #00e676;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+}
+
+.checkbox-text-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.checkbox-main-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.checkbox-sub-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* Modal Footer & Speed Submit Unlock Button */
+.social-rules-footer {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+[data-theme="light"] .social-rules-footer {
+    border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.social-rules-hint {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.social-rules-hint.ready {
+    color: #00e676;
+}
+
+.submit-speed-unlocked-btn {
+    width: 100%;
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    transition: all 0.25s ease;
+}
+
+.submit-speed-unlocked-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: none !important;
+}
+
+[data-theme="light"] .submit-speed-unlocked-btn:disabled {
+    background: #e4e4ec !important;
+    color: #888894 !important;
+    border-color: #d0d0dc !important;
+}
+
+.submit-speed-unlocked-btn.ready-pulse {
+    opacity: 1 !important;
+    cursor: pointer !important;
+    background: linear-gradient(135deg, #ff1515 0%, #ff5e00 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid #ff3b3b !important;
+    box-shadow: 0 0 25px rgba(255, 21, 21, 0.6), 0 4px 18px rgba(255, 94, 0, 0.4) !important;
+    animation: pulseGlow 1.8s infinite alternate ease-in-out;
+}
+
+.submit-speed-unlocked-btn.ready-pulse:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 35px rgba(255, 21, 21, 0.8), 0 6px 24px rgba(255, 94, 0, 0.55) !important;
+}
+
+@media (max-width: 600px) {
+    .modal-content.social-rules-modal-content {
+        padding: 20px 16px;
+    }
+    .social-step-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .step-card-action {
+        width: 100%;
+    }
+    .social-verify-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
 
 
 

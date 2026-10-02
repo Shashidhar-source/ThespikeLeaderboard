@@ -475,6 +475,11 @@
                         <span class="form-hint">Our automated link inspector checks against fake or broken URLs.</span>
                     </div>
 
+                    <div class="submission-rules-pill" id="submissionRulesPill">
+                        <span class="rules-pill-icon">📜</span>
+                        <span class="rules-pill-text"><strong>Leaderboard Rule:</strong> Subscribing to our YouTube channel &amp; following on Instagram is required upon submitting speed.</span>
+                    </div>
+
                     <div class="modal-actions">
                         <button type="button" class="action-btn secondary-btn" id="cancelRecordModalBtn">Cancel</button>
                         <button type="submit" class="action-btn primary-btn" id="submitRecordBtn">
@@ -514,6 +519,127 @@
                         <span class="subaction-divider">or test instantly</span>
                         <button type="button" class="demo-quick-auth-btn" id="modalDemoLoginBtn">
                             <span>🎮</span> Continue with Instant Demo Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: MANDATORY SOCIAL RULES & VERIFICATION (NO EXIT BUTTON) -->
+        <div class="modal-backdrop social-rules-backdrop" id="socialRulesModal" style="display:none;">
+            <div class="modal-content social-rules-modal-content">
+                <div class="modal-header social-rules-header">
+                    <div class="record-modal-badge">📜 OFFICIAL COMMUNITY RULES</div>
+                    <h3>SUBSCRIBE &amp; FOLLOW TO SUBMIT SPEED</h3>
+                    <!-- Intentionally NO exit button (&times;) as per mandatory rule requirement -->
+                </div>
+
+                <div class="social-rules-body">
+                    <p class="social-rules-notice">
+                        ⚡ <strong>Official Spike Cross India Rule:</strong> To publish and feature your speed record on the verified national leaderboard, you must <strong>subscribe to our YouTube channel</strong> and <strong>follow us on Instagram</strong>.
+                    </p>
+
+                    <!-- SPEED RECORD SUMMARY PREVIEW -->
+                    <div class="social-speed-summary-pill" id="socialRulesSpeedSummary">
+                        <div class="summary-stat-item">
+                            <span class="summary-lbl">PLAYER IGN</span>
+                            <strong class="summary-val" id="socialRulesIgnPreview">—</strong>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-stat-item">
+                            <span class="summary-lbl">SPIKE SPEED</span>
+                            <strong class="summary-val speed-val" id="socialRulesSpeedPreview">0 KM/H</strong>
+                        </div>
+                        <div class="summary-divider"></div>
+                        <div class="summary-stat-item">
+                            <span class="summary-lbl">CHARACTER</span>
+                            <strong class="summary-val" id="socialRulesCharPreview">—</strong>
+                        </div>
+                    </div>
+
+                    <!-- STEP CARDS -->
+                    <div class="social-steps-list">
+                        <!-- STEP 1: YOUTUBE SUBSCRIBE -->
+                        <div class="social-step-card" id="ytStepCard">
+                            <div class="step-card-left">
+                                <div class="social-channel-avatar yt-avatar-box">
+                                    <img src="images/yt_channel_logo.jpg" alt="YouTube Channel" class="social-step-avatar-img">
+                                    <span class="social-platform-badge yt-badge">🔴</span>
+                                </div>
+                                <div class="step-card-info">
+                                    <div class="step-card-title-row">
+                                        <span class="step-num-pill">STEP 1</span>
+                                        <h4 class="step-card-name">Subscribe YouTube Channel</h4>
+                                    </div>
+                                    <span class="step-card-sub">@thespikeindia-m9i · Watch gameplay clips, tournaments &amp; guides</span>
+                                    <div class="step-status-pill pending" id="ytStatusBadge">⏳ Subscription Required</div>
+                                </div>
+                            </div>
+                            <div class="step-card-action">
+                                <a href="https://youtube.com/@thespikeindia-m9i?si=uOOqXTk3eM09D4wa" target="_blank" rel="noopener" class="action-btn social-verify-btn yt-verify-btn" id="socialVerifyYtBtn">
+                                    <span>🔴</span> SUBSCRIBE CHANNEL
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2: INSTAGRAM FOLLOW -->
+                        <div class="social-step-card" id="igStepCard">
+                            <div class="step-card-left">
+                                <div class="social-channel-avatar ig-avatar-box">
+                                    <svg class="social-step-ig-svg" viewBox="0 0 24 24" width="28" height="28">
+                                        <defs>
+                                            <radialGradient id="igGradRulesModal" cx="20%" cy="110%" r="130%">
+                                                <stop offset="0%" stop-color="#fdf497"/>
+                                                <stop offset="5%" stop-color="#fdf497"/>
+                                                <stop offset="45%" stop-color="#fd5949"/>
+                                                <stop offset="60%" stop-color="#d6249f"/>
+                                                <stop offset="90%" stop-color="#285AEB"/>
+                                            </radialGradient>
+                                        </defs>
+                                        <path fill="url(#igGradRulesModal)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                    </svg>
+                                    <span class="social-platform-badge ig-badge">📸</span>
+                                </div>
+                                <div class="step-card-info">
+                                    <div class="step-card-title-row">
+                                        <span class="step-num-pill">STEP 2</span>
+                                        <h4 class="step-card-name">Follow on Instagram</h4>
+                                    </div>
+                                    <span class="step-card-sub">@thespikeindia · Updates, announcements &amp; highlights</span>
+                                    <div class="step-status-pill pending" id="igStatusBadge">⏳ Follow Required</div>
+                                </div>
+                            </div>
+                            <div class="step-card-action">
+                                <a href="https://www.instagram.com/thespikeindia/" target="_blank" rel="noopener" class="action-btn social-verify-btn ig-verify-btn" id="socialVerifyIgBtn">
+                                    <span>📸</span> FOLLOW INSTAGRAM
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- INSTAGRAM EXEMPTION CHECKBOX -->
+                        <div class="no-instagram-container" id="noInstagramContainer">
+                            <label class="no-instagram-label" for="noInstagramCheckbox">
+                                <input type="checkbox" id="noInstagramCheckbox" class="social-rule-checkbox">
+                                <span class="custom-check-box" aria-hidden="true">
+                                    <svg viewBox="0 0 12 10" width="12" height="10" fill="none">
+                                        <path d="M1 5l3.5 3.5L11 1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                <span class="checkbox-text-content">
+                                    <span class="checkbox-main-text">I don't have Instagram, but I subscribed to the channel</span>
+                                    <span class="checkbox-sub-text">Check this if you do not use Instagram. Only YouTube subscription will be required.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- UNLOCK ACTION BAR (NO EXIT BUTTON) -->
+                    <div class="social-rules-footer">
+                        <div class="social-rules-hint" id="socialRulesUnlockHint">
+                            🔒 Click to subscribe on YouTube and follow on Instagram to unlock speed submission.
+                        </div>
+                        <button type="button" class="action-btn primary-btn submit-speed-unlocked-btn" id="socialRulesSubmitSpeedBtn" disabled>
+                            <span class="btn-lock-icon">🔒</span> COMPLETE RULES TO SUBMIT SPEED
                         </button>
                     </div>
                 </div>

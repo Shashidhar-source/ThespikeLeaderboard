@@ -612,3 +612,48 @@ select option:hover,
     color: #b30000;
 }
 
+/* ── DAILY LIMITS & QUOTA PROTECTION BADGE ────────────────── */
+.auth-limits-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+[data-theme="light"] .auth-limits-strip {
+    background: #f7f7f9;
+    border-color: #e5e5ed;
+}
+
+.auth-limit-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.auth-limit-badge strong {
+    color: var(--accent-red);
+    font-weight: 800;
+}
+
+.auth-limit-badge.firebase-badge strong {
+    color: #ffaa00;
+}
+
+.auth-limit-badge.exceeded {
+    color: #ff5252;
+}
+
+.limit-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+

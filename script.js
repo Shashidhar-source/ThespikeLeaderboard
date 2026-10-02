@@ -14,7 +14,12 @@ import {
     fetchUserProfile,
     fetchPlayersFromCloud,
     subscribeToCloudLeaderboard,
-    deletePlayerFromCloud
+    deletePlayerFromCloud,
+    FIREBASE_DAILY_LIMIT,
+    DAILY_LOGIN_LIMIT,
+    getFirebaseDailyUsage,
+    getLoginDailyUsage,
+    checkAndIncrementLoginAttempt
 } from "./firebase-config.js";
 
 
@@ -782,6 +787,13 @@ loginPromptModal?.addEventListener('click', (e) => {
 
 // Quick demo login directly from login prompt modal
 document.getElementById('modalDemoLoginBtn')?.addEventListener('click', () => {
+    const loginUsage = getLoginDailyUsage();
+    if (loginUsage.isExceeded) {
+        showToast(`⚠️ Daily login limit reached (${DAILY_LOGIN_LIMIT}/${DAILY_LOGIN_LIMIT} used today). Logins paused until tomorrow.`, 'error');
+        return;
+    }
+    checkAndIncrementLoginAttempt('modal-demo-login');
+
     const remembered = getRememberedDetails() || {};
     const demoUser = {
         ign: remembered.ign || 'SPIKE_MASTER10',
@@ -1022,6 +1034,7 @@ function openRecordSubmissionModal(user = null) {
     updateProfileAvatarPreview(recordCharInput?.value, recordIgnInput?.value);
     updateCharRecordStatus(recordCharInput?.value);
     triggerLinkInspection(recordProofInput?.value || '');
+    updateSubmissionRulesPill();
     recordModal.style.display = 'flex';
     if (!recordIgnInput?.value) {
         recordIgnInput?.focus();
@@ -1087,41 +1100,178 @@ async function syncRecordToFirebase(updatedUser, recordData, speed) {
     }
 }
 
-// Player record form submission
-recordForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+/* ── MANDATORY SOCIAL RULES & VERIFICATION SYSTEM ─────────── */
+const SOCIAL_VERIFIED_KEY = 'spike_social_verified';
+const NO_INSTAGRAM_KEY    = 'spike_no_instagram';
 
-    const rawUser   = getCurrentUser() || {};
-    const ign       = (recordIgnInput ? recordIgnInput.value.trim() : (rawUser.ign || '')).trim();
-    const uid       = (recordUidInput ? recordUidInput.value.trim() : (rawUser.uid || '')).trim();
-    const speed     = parseInt(recordSpeedInput.value, 10) || 0;
-    const character = recordCharInput.value;
-    const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
-    const state     = recordStateInput.value.trim() || 'India';
-    const city      = recordCityInput ? recordCityInput.value.trim() : '';
-    const proof     = recordProofInput.value.trim();
+const socialRulesModal      = document.getElementById('socialRulesModal');
+const socialRulesYtBtn      = document.getElementById('socialVerifyYtBtn');
+const socialRulesIgBtn      = document.getElementById('socialVerifyIgBtn');
+const noInstagramCheckbox   = document.getElementById('noInstagramCheckbox');
+const socialRulesSubmitBtn  = document.getElementById('socialRulesSubmitSpeedBtn');
+const socialRulesUnlockHint = document.getElementById('socialRulesUnlockHint');
+const ytStatusBadge         = document.getElementById('ytStatusBadge');
+const igStatusBadge         = document.getElementById('igStatusBadge');
+const ytStepCard            = document.getElementById('ytStepCard');
+const igStepCard            = document.getElementById('igStepCard');
+const socialIgnPreview      = document.getElementById('socialRulesIgnPreview');
+const socialSpeedPreview    = document.getElementById('socialRulesSpeedPreview');
+const socialCharPreview     = document.getElementById('socialRulesCharPreview');
+const submissionRulesPill   = document.getElementById('submissionRulesPill');
 
-    if (!ign || !uid) {
-        alert('Please enter your Spike Cross In-Game Name (IGN) and UID.');
-        return;
+let isYtSubscribed = false;
+let isIgFollowed = false;
+let isNoInstagram = false;
+let pendingSpeedPayload = null;
+
+function updateSubmissionRulesPill() {
+    if (!submissionRulesPill) return;
+    const isVerified = localStorage.getItem(SOCIAL_VERIFIED_KEY) === 'true';
+    if (isVerified) {
+        submissionRulesPill.className = 'submission-rules-pill verified';
+        submissionRulesPill.innerHTML = `
+            <span class="rules-pill-icon">✅</span>
+            <span class="rules-pill-text"><strong>Community Rules Verified:</strong> YouTube channel &amp; Instagram verified. Ready to submit!</span>
+        `;
+    } else {
+        submissionRulesPill.className = 'submission-rules-pill';
+        submissionRulesPill.innerHTML = `
+            <span class="rules-pill-icon">📜</span>
+            <span class="rules-pill-text"><strong>Leaderboard Rule:</strong> Subscribing to our YouTube channel &amp; following on Instagram is required upon submitting speed.</span>
+        `;
     }
+}
 
-    if (speed <= 0) {
-        alert('Please enter a valid spike speed greater than 0 KM/H.');
-        recordSpeedInput.focus();
-        return;
-    }
+function updateSocialRulesUnlockStatus() {
+    const isUnlocked = isYtSubscribed && (isIgFollowed || isNoInstagram);
 
-    // Verify proof link if provided
-    if (proof && proof !== '#') {
-        const check = inspectProofLink(proof);
-        if (check.isFake) {
-            alert(`❌ Cannot submit fake or invalid proof link: ${check.message}`);
-            recordProofInput.focus();
-            return;
+    if (!socialRulesSubmitBtn || !socialRulesUnlockHint) return;
+
+    if (isUnlocked) {
+        socialRulesSubmitBtn.disabled = false;
+        socialRulesSubmitBtn.classList.add('ready-pulse');
+        socialRulesSubmitBtn.innerHTML = `<span>⚡</span> CONFIRM &amp; SUBMIT SPEED RECORD`;
+        socialRulesUnlockHint.className = 'social-rules-hint ready';
+        socialRulesUnlockHint.innerHTML = `🎉 <strong>Community Rules Verified!</strong> Click below to submit your speed to the leaderboard.`;
+    } else {
+        socialRulesSubmitBtn.disabled = true;
+        socialRulesSubmitBtn.classList.remove('ready-pulse');
+        socialRulesSubmitBtn.innerHTML = `<span class="btn-lock-icon">🔒</span> COMPLETE RULES TO SUBMIT SPEED`;
+        socialRulesUnlockHint.className = 'social-rules-hint';
+        if (!isYtSubscribed && !isIgFollowed && !isNoInstagram) {
+            socialRulesUnlockHint.innerHTML = `🔒 Click to subscribe on YouTube and follow on Instagram to unlock speed submission.`;
+        } else if (!isYtSubscribed) {
+            socialRulesUnlockHint.innerHTML = `⚠️ Step 1: Please click and subscribe to our YouTube channel.`;
+        } else {
+            socialRulesUnlockHint.innerHTML = `⚠️ Step 2: Please follow on Instagram, or tick the box if you don't have Instagram.`;
         }
     }
+}
 
+function openSocialRulesModal(payload) {
+    if (!socialRulesModal) return;
+
+    pendingSpeedPayload = payload;
+
+    if (socialIgnPreview) socialIgnPreview.textContent = payload.ign || 'Player';
+    if (socialSpeedPreview) socialSpeedPreview.textContent = `${payload.speed} KM/H`;
+    if (socialCharPreview) socialCharPreview.textContent = payload.character || 'Character';
+
+    // Synchronize initial state
+    if (noInstagramCheckbox) {
+        isNoInstagram = noInstagramCheckbox.checked;
+    }
+
+    updateSocialRulesUnlockStatus();
+    socialRulesModal.style.display = 'flex';
+}
+
+// User interactions on YouTube Subscribe
+socialRulesYtBtn?.addEventListener('click', () => {
+    isYtSubscribed = true;
+    socialRulesYtBtn.classList.add('verified');
+    socialRulesYtBtn.innerHTML = `<span>✅</span> SUBSCRIBED / VISITED`;
+    if (ytStatusBadge) {
+        ytStatusBadge.className = 'step-status-pill completed';
+        ytStatusBadge.textContent = '✅ Subscribed / Visited';
+    }
+    ytStepCard?.classList.add('completed-card');
+    updateSocialRulesUnlockStatus();
+});
+
+// User interactions on Instagram Follow
+socialRulesIgBtn?.addEventListener('click', () => {
+    isIgFollowed = true;
+    socialRulesIgBtn.classList.add('verified');
+    socialRulesIgBtn.innerHTML = `<span>✅</span> FOLLOWED / VISITED`;
+    if (igStatusBadge) {
+        igStatusBadge.className = 'step-status-pill completed';
+        igStatusBadge.textContent = '✅ Followed / Visited';
+    }
+    igStepCard?.classList.add('completed-card');
+    updateSocialRulesUnlockStatus();
+});
+
+// User toggles "I don't have Instagram, but I subscribed to the channel"
+noInstagramCheckbox?.addEventListener('change', (e) => {
+    isNoInstagram = !!e.target.checked;
+    if (isNoInstagram) {
+        igStepCard?.classList.add('waived');
+        if (igStatusBadge) {
+            igStatusBadge.className = 'step-status-pill waived';
+            igStatusBadge.textContent = '✓ Waived (No Instagram)';
+        }
+        socialRulesIgBtn?.classList.add('disabled-waived');
+    } else {
+        igStepCard?.classList.remove('waived');
+        socialRulesIgBtn?.classList.remove('disabled-waived');
+        if (igStatusBadge) {
+            if (isIgFollowed) {
+                igStatusBadge.className = 'step-status-pill completed';
+                igStatusBadge.textContent = '✅ Followed / Visited';
+            } else {
+                igStatusBadge.className = 'step-status-pill pending';
+                igStatusBadge.textContent = '⏳ Follow Required';
+            }
+        }
+    }
+    updateSocialRulesUnlockStatus();
+});
+
+// Rules Modal has NO exit button — block clicks on backdrop and escape key
+socialRulesModal?.addEventListener('click', (e) => {
+    // Backdrop clicks do not close the modal
+    e.stopPropagation();
+});
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && socialRulesModal?.style.display === 'flex') {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+});
+
+// Speed submit execution after rules verification is satisfied
+socialRulesSubmitBtn?.addEventListener('click', async () => {
+    const isUnlocked = isYtSubscribed && (isIgFollowed || isNoInstagram);
+    if (!isUnlocked || !pendingSpeedPayload) return;
+
+    // Save persistent verification mark
+    localStorage.setItem(SOCIAL_VERIFIED_KEY, 'true');
+    if (isNoInstagram) {
+        localStorage.setItem(NO_INSTAGRAM_KEY, 'true');
+    }
+
+    socialRulesModal.style.display = 'none';
+
+    const payloadToSubmit = pendingSpeedPayload;
+    pendingSpeedPayload = null;
+
+    await executeSpeedSubmission(payloadToSubmit);
+});
+
+// Core Speed Submission Executor
+async function executeSpeedSubmission({ ign, uid, speed, character, setup, state, city, proof, rawUser }) {
     const submitBtn = document.getElementById('submitRecordBtn');
     if (submitBtn) {
         submitBtn.disabled = true;
@@ -1182,7 +1332,7 @@ recordForm?.addEventListener('submit', async (e) => {
                   `• Same character: You can only submit a HIGHER speed (greater than ${oldSpeed} KM/H) to replace this record.\n` +
                   `• Different characters: You can select other characters from the dropdown (e.g. OASIS, JAEHYUN, HEESEONG) to add separate leaderboard entries!\n\n` +
                   `Please enter a speed greater than ${oldSpeed} KM/H, or select a different character.`);
-            recordSpeedInput.focus();
+            recordSpeedInput?.focus();
             return;
         }
 
@@ -1216,6 +1366,7 @@ recordForm?.addEventListener('submit', async (e) => {
         region: state,
         city,
         proof,
+        socialVerified: true,
         updatedAt: new Date().toISOString()
     };
 
@@ -1236,6 +1387,7 @@ recordForm?.addEventListener('submit', async (e) => {
 
     // 4. Refresh UI and close modal
     checkUserSession();
+    updateSubmissionRulesPill();
     closeRecordModal();
     if (submitBtn) {
         submitBtn.disabled = false;
@@ -1276,6 +1428,100 @@ recordForm?.addEventListener('submit', async (e) => {
 
     // 7. Background sync to Firebase (non-blocking)
     syncRecordToFirebase(updatedUser, recordData, speed);
+}
+
+// Player record form submission
+recordForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const rawUser   = getCurrentUser() || {};
+    const ign       = (recordIgnInput ? recordIgnInput.value.trim() : (rawUser.ign || '')).trim();
+    const uid       = (recordUidInput ? recordUidInput.value.trim() : (rawUser.uid || '')).trim();
+    const speed     = parseInt(recordSpeedInput.value, 10) || 0;
+    const character = recordCharInput.value;
+    const setup     = recordSetupInput.value.trim() || 'Power 120 / Jump 120';
+    const state     = recordStateInput.value.trim() || 'India';
+    const city      = recordCityInput ? recordCityInput.value.trim() : '';
+    const proof     = recordProofInput.value.trim();
+
+    if (!ign || !uid) {
+        alert('Please enter your Spike Cross In-Game Name (IGN) and UID.');
+        return;
+    }
+
+    if (speed <= 0) {
+        alert('Please enter a valid spike speed greater than 0 KM/H.');
+        recordSpeedInput?.focus();
+        return;
+    }
+
+    // Verify proof link if provided
+    if (proof && proof !== '#') {
+        const check = inspectProofLink(proof);
+        if (check.isFake) {
+            alert(`❌ Cannot submit fake or invalid proof link: ${check.message}`);
+            recordProofInput?.focus();
+            return;
+        }
+    }
+
+    // Check if player has an existing record with THIS SAME character
+    const ignUpper   = ign.toUpperCase();
+    const uidUpper   = uid.toUpperCase();
+    const oldIgn     = rawUser.ign ? rawUser.ign.toUpperCase() : '';
+    const oldUid     = rawUser.uid ? rawUser.uid.toUpperCase() : '';
+    const charUpper  = (character || 'BLACK THUNDER NISHIKAWA').trim().toUpperCase();
+
+    const isPlayerMatch = (p) => {
+        if (!p) return false;
+        const pTag = (p.tag || '').trim().toUpperCase();
+        const pUid = (p.uid || '').trim().toUpperCase();
+        const matchTag = ignUpper && pTag === ignUpper;
+        const matchOldTag = oldIgn && pTag === oldIgn;
+        const matchUid = uidUpper && pUid && pUid === uidUpper;
+        const matchOldUid = oldUid && pUid && pUid === oldUid;
+        return matchTag || matchOldTag || matchUid || matchOldUid;
+    };
+
+    const existingCharIdx = allPlayers.findIndex(p => 
+        isPlayerMatch(p) && (p.character || '').trim().toUpperCase() === charUpper
+    );
+    const existingCharRecord = existingCharIdx >= 0 ? allPlayers[existingCharIdx] : null;
+
+    if (existingCharRecord) {
+        const oldSpeed = parseInt(existingCharRecord.speed, 10) || 0;
+        if (speed <= oldSpeed) {
+            alert(`⚠️ Cannot replace record:\n\nYou already have a verified record of ${oldSpeed} KM/H for ${character}.\n\n` +
+                  `• Same character: You can only submit a HIGHER speed (greater than ${oldSpeed} KM/H) to replace this record.\n` +
+                  `• Different characters: You can select other characters from the dropdown (e.g. OASIS, JAEHYUN, HEESEONG) to add separate leaderboard entries!\n\n` +
+                  `Please enter a speed greater than ${oldSpeed} KM/H, or select a different character.`);
+            recordSpeedInput?.focus();
+            return;
+        }
+    }
+
+    const payload = {
+        ign,
+        uid,
+        speed,
+        character,
+        setup,
+        state,
+        city,
+        proof,
+        rawUser
+    };
+
+    const isSocialVerified = localStorage.getItem(SOCIAL_VERIFIED_KEY) === 'true';
+
+    if (!isSocialVerified) {
+        // Intercept and open mandatory verification popup window (no exit button)
+        openSocialRulesModal(payload);
+        return;
+    }
+
+    // Already verified: proceed to save speed record
+    await executeSpeedSubmission(payload);
 });
 
 // Toast helper

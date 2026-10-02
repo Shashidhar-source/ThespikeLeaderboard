@@ -15,7 +15,13 @@ import {
     signInWithPopup,
     saveUserProfile,
     fetchUserProfile,
-    inspectProofLink
+    inspectProofLink,
+    FIREBASE_DAILY_LIMIT,
+    DAILY_LOGIN_LIMIT,
+    getFirebaseDailyUsage,
+    checkAndIncrementFirebaseOp,
+    getLoginDailyUsage,
+    checkAndIncrementLoginAttempt
 } from "./firebase-config.js";
 
 const USERS_STORAGE_KEY = 'spike-cross-users';
@@ -165,8 +171,35 @@ const REMEMBERED_DETAILS_KEY = 'spike-remembered-player-details';
 const urlParams = new URLSearchParams(window.location.search);
 const redirectTarget = 'index.html?action=profile';
 
+// ── DAILY LIMIT DISPLAY & PROTECTION ────────────────────────
+function updateLoginLimitDisplay() {
+    const loginUsage = getLoginDailyUsage();
+    const fbUsage = getFirebaseDailyUsage();
+
+    const loginText = document.getElementById('dailyLoginLimitText');
+    const loginBadge = document.getElementById('dailyLoginLimitBadge');
+    if (loginText) {
+        loginText.innerHTML = `Daily Logins: <strong>${loginUsage.count} / ${DAILY_LOGIN_LIMIT}</strong> used today`;
+    }
+    if (loginBadge) {
+        if (loginUsage.isExceeded) loginBadge.classList.add('exceeded');
+        else loginBadge.classList.remove('exceeded');
+    }
+
+    const fbText = document.getElementById('dailyFirebaseLimitText');
+    const fbBadge = document.getElementById('dailyFirebaseLimitBadge');
+    if (fbText) {
+        fbText.innerHTML = `Firebase Cloud: <strong>${fbUsage.count} / ${FIREBASE_DAILY_LIMIT}</strong> ops (Free Tier Protected)`;
+    }
+    if (fbBadge) {
+        if (fbUsage.isExceeded) fbBadge.classList.add('exceeded');
+        else fbBadge.classList.remove('exceeded');
+    }
+}
+
 // Prefill saved IGN or Email if remembered
 window.addEventListener('DOMContentLoaded', () => {
+    updateLoginLimitDisplay();
     try {
         const raw = localStorage.getItem(REMEMBERED_DETAILS_KEY) || localStorage.getItem(CURRENT_USER_KEY);
         if (raw) {
@@ -221,6 +254,12 @@ registerForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
 
+    const loginUsage = getLoginDailyUsage();
+    if (loginUsage.isExceeded) {
+        showAlert(`⚠️ Daily limit reached (${DAILY_LOGIN_LIMIT}/${DAILY_LOGIN_LIMIT} operations used today). To protect against excess Firebase requests, registrations are paused until tomorrow.`, true);
+        return;
+    }
+
     const ign      = document.getElementById('regIgn')?.value.trim();
     const uid      = document.getElementById('regUid')?.value.trim();
     const email    = document.getElementById('regEmail')?.value.trim();
@@ -236,6 +275,9 @@ registerForm?.addEventListener('submit', async (e) => {
         showAlert('Password must be at least 6 characters.');
         return;
     }
+
+    checkAndIncrementLoginAttempt('registration');
+    updateLoginLimitDisplay();
 
     if (regBtn) regBtn.disabled = true;
     showAlert('Creating your Spike Cross account...', false);
@@ -289,6 +331,12 @@ loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlert();
 
+    const loginUsage = getLoginDailyUsage();
+    if (loginUsage.isExceeded) {
+        showAlert(`⚠️ Daily Login Limit Reached (${DAILY_LOGIN_LIMIT}/${DAILY_LOGIN_LIMIT} used today). To protect your account security and Firebase quotas, logins are paused until tomorrow.`, true);
+        return;
+    }
+
     const identifier = document.getElementById('loginIdentifier')?.value.trim();
     const password   = document.getElementById('loginPassword')?.value;
     const loginBtn   = document.getElementById('loginBtn');
@@ -297,6 +345,9 @@ loginForm?.addEventListener('submit', async (e) => {
         showAlert('Please enter your IGN or Email, and password.');
         return;
     }
+
+    checkAndIncrementLoginAttempt('email-login');
+    updateLoginLimitDisplay();
 
     if (loginBtn) loginBtn.disabled = true;
     showAlert('Authenticating...', false);
@@ -378,6 +429,14 @@ loginForm?.addEventListener('submit', async (e) => {
 
 // ── INSTANT DEMO LOGIN BUTTON ───────────────────────────────
 document.getElementById('demoQuickLoginBtn')?.addEventListener('click', () => {
+    const loginUsage = getLoginDailyUsage();
+    if (loginUsage.isExceeded) {
+        showAlert(`⚠️ Daily Login Limit Reached (${DAILY_LOGIN_LIMIT}/${DAILY_LOGIN_LIMIT} used today). Logins are paused until tomorrow.`, true);
+        return;
+    }
+    checkAndIncrementLoginAttempt('demo-login');
+    updateLoginLimitDisplay();
+
     let remembered = {};
     try {
         const raw = localStorage.getItem(REMEMBERED_DETAILS_KEY);
@@ -405,6 +464,15 @@ document.getElementById('demoQuickLoginBtn')?.addEventListener('click', () => {
 // ── GOOGLE AUTHENTICATION HANDLER ────────────────────────────
 async function handleGoogleAuth() {
     clearAlert();
+
+    const loginUsage = getLoginDailyUsage();
+    if (loginUsage.isExceeded) {
+        showAlert(`⚠️ Daily Login Limit Reached (${DAILY_LOGIN_LIMIT}/${DAILY_LOGIN_LIMIT} used today). To protect your account security and Firebase quotas, logins are paused until tomorrow.`, true);
+        return;
+    }
+    checkAndIncrementLoginAttempt('google-login');
+    updateLoginLimitDisplay();
+
     showAlert('Connecting to Google Account...', false);
 
     try {
