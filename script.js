@@ -17,7 +17,10 @@ import {
     onSnapshot, 
     query, 
     orderBy, 
-    inspectProofLink 
+    inspectProofLink,
+    savePlayerToCloud,
+    fetchPlayersFromCloud,
+    subscribeToCloudLeaderboard
 } from "./firebase-config.js";
 
 
@@ -548,25 +551,16 @@ function mergeWithLocalPlayers(remoteList) {
 
 async function initFirebaseLeaderboard() {
     try {
-        const q = query(collection(db, "players"), orderBy("speed", "desc"));
-
-        // Real-time updates from Firestore
-        onSnapshot(q, (snapshot) => {
-            const cleanList = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data && data.tag) {
-                    cleanList.push(data);
-                }
-            });
-
-            const merged = mergeWithLocalPlayers(cleanList);
-            allPlayers = alignAndSortPlayers(merged);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
-            onPlayersUpdated();
-        }, (error) => {
-            console.warn("Firestore onSnapshot note (using local cache):", error?.message || error);
-            loadStoredPlayers();
+        // Subscribe to real-time updates from Firebase Cloud (Realtime DB & Firestore)
+        subscribeToCloudLeaderboard((cleanList) => {
+            if (Array.isArray(cleanList) && cleanList.length > 0) {
+                const merged = mergeWithLocalPlayers(cleanList);
+                allPlayers = alignAndSortPlayers(merged);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(allPlayers));
+                onPlayersUpdated();
+            } else {
+                loadStoredPlayers();
+            }
         });
     } catch (err) {
         console.warn("Firebase initialization note (using local cache):", err?.message || err);
@@ -967,32 +961,31 @@ function triggerLinkInspection(url) {
     }
 }
 
-/* ── NON-BLOCKING BACKGROUND FIREBASE SYNC ──────────────────── */
+/* ── NON-BLOCKING BACKGROUND FIREBASE CLOUD SYNC ──────────── */
 async function syncRecordToFirebase(updatedUser, recordData, speed) {
     const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Firebase sync timed out')), 6000)
     );
 
     const syncTask = async () => {
-        const ign = updatedUser.ign;
-        const userDocId = updatedUser.firebaseUid ? updatedUser.firebaseUid : ign.toLowerCase();
-        
-        await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
-        await setDoc(doc(db, "users_by_ign", ign.toLowerCase()), {
-            email: updatedUser.email || '',
-            ign,
-            uid: updatedUser.uid || '',
-            firebaseUid: updatedUser.firebaseUid || ''
-        }, { merge: true });
-
+        // 1. Save player record directly to Firebase Cloud (Realtime DB + Firestore)
         if (speed > 0) {
-            await setDoc(doc(db, "players", ign.toUpperCase()), recordData);
+            await savePlayerToCloud(recordData);
+        }
+
+        // 2. Also save user profile
+        try {
+            const ign = updatedUser.ign;
+            const userDocId = updatedUser.firebaseUid ? updatedUser.firebaseUid : ign.toLowerCase();
+            await setDoc(doc(db, "users", userDocId), updatedUser, { merge: true });
+        } catch (e) {
+            // User doc optional
         }
     };
 
     try {
         await Promise.race([syncTask(), timeoutPromise]);
-        console.log('Firebase Cloud sync completed successfully.');
+        console.log('Firebase Cloud sync completed successfully across all devices.');
     } catch (fbErr) {
         console.warn('Firebase profile save note (offline copy saved):', fbErr);
     }

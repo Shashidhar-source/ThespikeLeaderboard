@@ -20,6 +20,16 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 import {
+    getDatabase,
+    ref,
+    set,
+    get,
+    child,
+    onValue,
+    remove
+} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+import {
     getAuth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -35,6 +45,7 @@ import {
 const firebaseConfig = {
     apiKey: "AIzaSyDakEOvBAtgeXtrm3xzPgv_jZgIH9qWWCA",
     authDomain: "thespikeleaderboard.firebaseapp.com",
+    databaseURL: "https://thespikeleaderboard-default-rtdb.firebaseio.com",
     projectId: "thespikeleaderboard",
     storageBucket: "thespikeleaderboard.firebasestorage.app",
     messagingSenderId: "89178505636",
@@ -45,7 +56,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
+const rtdb = getDatabase(app);
 const auth = getAuth(app);
+const RTDB_URL = "https://thespikeleaderboard-default-rtdb.firebaseio.com";
 
 
 /* ── PROOF LINK INSPECTOR & FAKE DETECTOR ──────────────────────
@@ -151,9 +164,135 @@ export function inspectProofLink(urlStr) {
     };
 }
 
+/* ── CLOUD SYNC HELPERS (FIREBASE REALTIME DB + FIRESTORE) ── */
+export async function savePlayerToCloud(playerData) {
+    const tag = (playerData.tag || '').trim();
+    if (!tag) return false;
+    const safeTag = tag.toUpperCase().replace(/[\/\.#$\[\]]/g, '_');
+
+    const cleanRecord = {
+        tag,
+        speed: parseInt(playerData.speed, 10) || 0,
+        character: playerData.character || 'BLACK THUNDER NISHIKAWA',
+        setup: playerData.setup || 'Power 120 / Jump 120',
+        state: playerData.state || 'India',
+        city: playerData.city || '',
+        proof: playerData.proof || '',
+        uid: playerData.uid || '',
+        updatedAt: playerData.updatedAt || new Date().toISOString()
+    };
+
+    let saved = false;
+
+    // 1. Save to Firebase Realtime Database via SDK
+    try {
+        await set(ref(rtdb, `players/${safeTag}`), cleanRecord);
+        saved = true;
+    } catch (rtdbErr) {
+        // Fallback to direct REST API if SDK is blocked or offline
+        try {
+            await fetch(`${RTDB_URL}/players/${encodeURIComponent(safeTag)}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cleanRecord)
+            });
+            saved = true;
+        } catch (restErr) {
+            console.warn('RTDB sync warning:', restErr);
+        }
+    }
+
+    // 2. Also try Firestore in case it is active
+    try {
+        await setDoc(doc(db, "players", safeTag), cleanRecord, { merge: true });
+    } catch (fsErr) {
+        // Firestore may not be configured yet; RTDB handles it
+    }
+
+    return saved;
+}
+
+export async function fetchPlayersFromCloud() {
+    // 1. Fetch from Firebase Realtime Database
+    try {
+        const snap = await get(ref(rtdb, 'players'));
+        if (snap.exists()) {
+            const val = snap.val();
+            return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0);
+        }
+    } catch (e) {
+        // Try REST API fallback
+        try {
+            const resp = await fetch(`${RTDB_URL}/players.json`);
+            const val = await resp.json();
+            if (val && typeof val === 'object') {
+                return Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0);
+            }
+        } catch (restErr) {
+            console.warn('fetchPlayersFromCloud REST error:', restErr);
+        }
+    }
+
+    // 2. Fallback to Firestore if RTDB had nothing
+    try {
+        const querySnap = await getDocs(collection(db, "players"));
+        const list = [];
+        querySnap.forEach(d => {
+            const data = d.data();
+            if (data && data.tag) list.push(data);
+        });
+        if (list.length > 0) return list;
+    } catch (e) {}
+
+    return [];
+}
+
+export function subscribeToCloudLeaderboard(callback) {
+    try {
+        const playersRef = ref(rtdb, 'players');
+        return onValue(playersRef, (snapshot) => {
+            const val = snapshot.val();
+            const list = val ? Object.values(val).filter(p => p && p.tag && (parseInt(p.speed, 10) || 0) > 0) : [];
+            callback(list);
+        }, (err) => {
+            console.warn('Realtime subscription warning:', err);
+            // Polling fallback
+            fetchPlayersFromCloud().then(callback);
+        });
+    } catch (e) {
+        console.warn('subscribeToCloudLeaderboard failed, using fetch:', e);
+        fetchPlayersFromCloud().then(callback);
+        return null;
+    }
+}
+
+export async function deletePlayerFromCloud(tag) {
+    if (!tag) return false;
+    const safeTag = tag.trim().toUpperCase().replace(/[\/\.#$\[\]]/g, '_');
+    try {
+        await remove(ref(rtdb, `players/${safeTag}`));
+    } catch (e) {
+        try {
+            await fetch(`${RTDB_URL}/players/${encodeURIComponent(safeTag)}.json`, { method: 'DELETE' });
+        } catch (err) {}
+    }
+    try {
+        await deleteDoc(doc(db, "players", safeTag));
+    } catch (e) {}
+    return true;
+}
+
 export {
     app,
     db,
+    rtdb,
+    RTDB_URL,
+    ref,
+    set,
+    get,
+    child,
+    onValue,
+    remove,
     auth,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -175,4 +314,5 @@ export {
     deleteDoc,
     serverTimestamp
 };
+
 

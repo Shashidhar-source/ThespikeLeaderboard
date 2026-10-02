@@ -10,7 +10,10 @@ import {
     setDoc, 
     deleteDoc, 
     getDocs, 
-    inspectProofLink 
+    inspectProofLink,
+    savePlayerToCloud,
+    fetchPlayersFromCloud,
+    deletePlayerFromCloud
 } from "./firebase-config.js";
 
 const STORAGE_KEY       = 'spike-india-players';
@@ -166,12 +169,11 @@ async function initAdminData() {
         }
     } catch (e) {}
 
-    // 2. Attempt remote sync from Firebase Firestore
+    // 2. Attempt remote sync from Firebase Cloud
     try {
-        const snap = await getDocs(collection(db, "players"));
+        const cloudList = await fetchPlayersFromCloud();
         const remoteMap = new Map();
-        snap.forEach(d => {
-            const data = d.data();
+        cloudList.forEach(data => {
             if (data && data.tag) {
                 const tagUpper = data.tag.trim().toUpperCase();
                 const sp = parseInt(data.speed, 10) || 0;
@@ -207,10 +209,7 @@ async function initAdminData() {
 
 async function savePlayerDataToFirebase(player) {
     try {
-        await setDoc(doc(db, "players", player.tag.toUpperCase()), {
-            ...player,
-            updatedAt: new Date().toISOString()
-        });
+        await savePlayerToCloud(player);
     } catch (e) {
         console.warn('Firebase save player note:', e);
     }
@@ -218,7 +217,7 @@ async function savePlayerDataToFirebase(player) {
 
 async function deletePlayerFromFirebase(tag) {
     try {
-        await deleteDoc(doc(db, "players", tag.toUpperCase()));
+        await deletePlayerFromCloud(tag);
     } catch (e) {
         console.warn('Firebase delete player note:', e);
     }
@@ -230,11 +229,11 @@ function saveData(dataToSave) {
     players = dataToSave;
     renderAll();
 
-    // Sync all to Firebase in the background
+    // Sync all to Firebase Cloud in the background
     for (const p of dataToSave) {
         savePlayerDataToFirebase(p);
     }
-    showToast('Changes saved to Firebase Cloud & synced!', 'success');
+    showToast('Changes saved to Firebase Cloud & synced across all devices!', 'success');
 }
 
 // ── STATS COMPUTATION ───────────────────────────────────────
