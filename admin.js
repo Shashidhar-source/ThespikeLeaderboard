@@ -16,6 +16,46 @@ const STORAGE_KEY = 'spike-india-players';
 const ADMIN_SESSION_KEY = 'spike-admin-authenticated';
 const DEFAULT_PASSCODE = 'thespikeIN';
 
+// Rate Limiting Security for Admin Login
+const MAX_ADMIN_ATTEMPTS = 5;
+const ADMIN_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+const ADMIN_ATTEMPTS_KEY = 'spike-admin-attempts';
+const ADMIN_LOCKOUT_KEY = 'spike-admin-lockout-until';
+
+function getAdminLockoutRemaining() {
+    const lockoutUntil = parseInt(localStorage.getItem(ADMIN_LOCKOUT_KEY) || '0', 10);
+    const now = Date.now();
+    if (lockoutUntil > now) {
+        return Math.ceil((lockoutUntil - now) / 1000);
+    }
+    if (lockoutUntil > 0) {
+        // Expired lockout
+        localStorage.removeItem(ADMIN_LOCKOUT_KEY);
+        localStorage.removeItem(ADMIN_ATTEMPTS_KEY);
+    }
+    return 0;
+}
+
+function getAdminFailedAttempts() {
+    return parseInt(localStorage.getItem(ADMIN_ATTEMPTS_KEY) || '0', 10);
+}
+
+function recordAdminFailedAttempt() {
+    let attempts = getAdminFailedAttempts() + 1;
+    localStorage.setItem(ADMIN_ATTEMPTS_KEY, attempts.toString());
+    if (attempts >= MAX_ADMIN_ATTEMPTS) {
+        const lockoutUntil = Date.now() + ADMIN_COOLDOWN_MS;
+        localStorage.setItem(ADMIN_LOCKOUT_KEY, lockoutUntil.toString());
+        return { locked: true, remainingSecs: 300 };
+    }
+    return { locked: false, attemptsLeft: MAX_ADMIN_ATTEMPTS - attempts };
+}
+
+function clearAdminFailedAttempts() {
+    localStorage.removeItem(ADMIN_ATTEMPTS_KEY);
+    localStorage.removeItem(ADMIN_LOCKOUT_KEY);
+}
+
 // ── AVAILABLE CHARACTER IMAGES IN images/ ───────────────────
 const CHARACTER_FILES = [
     "BLACK THUNDER NISHIKAWA",
@@ -106,13 +146,64 @@ function drawParticles() {
 }
 if (canvas) drawParticles();
 
-// ── PASSCODE AUTH ───────────────────────────────────────────
+// ── PASSCODE AUTH & SECURITY ─────────────────────────────────
 const authOverlay = document.getElementById('adminAuthOverlay');
 const passForm = document.getElementById('adminPassForm');
 const passInput = document.getElementById('adminPassInput');
 const passError = document.getElementById('adminPassError');
 const adminDashboard = document.getElementById('adminDashboard');
 const logoutBtn = document.getElementById('logoutAdminBtn');
+const submitPassBtn = passForm?.querySelector('button[type="submit"]');
+
+let lockoutTimerInterval = null;
+
+function updateLockoutUI() {
+    const remainingSecs = getAdminLockoutRemaining();
+    if (remainingSecs > 0) {
+        const mins = Math.floor(remainingSecs / 60);
+        const secs = remainingSecs % 60;
+        const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        if (passError) {
+            passError.textContent = `⛔ Too many failed attempts. Security cooldown active. Try again in ${timeStr} min.`;
+            passError.style.display = 'block';
+        }
+        if (passInput) passInput.disabled = true;
+        if (submitPassBtn) submitPassBtn.disabled = true;
+
+        if (!lockoutTimerInterval) {
+            lockoutTimerInterval = setInterval(() => {
+                const rem = getAdminLockoutRemaining();
+                if (rem <= 0) {
+                    clearInterval(lockoutTimerInterval);
+                    lockoutTimerInterval = null;
+                    updateLockoutUI();
+                } else {
+                    const m = Math.floor(rem / 60);
+                    const s = rem % 60;
+                    if (passError) {
+                        passError.textContent = `⛔ Too many failed attempts. Security cooldown active. Try again in ${m}:${s < 10 ? '0' : ''}${s} min.`;
+                    }
+                }
+            }, 1000);
+        }
+    } else {
+        if (lockoutTimerInterval) {
+            clearInterval(lockoutTimerInterval);
+            lockoutTimerInterval = null;
+        }
+        if (passInput) passInput.disabled = false;
+        if (submitPassBtn) submitPassBtn.disabled = false;
+        const attempts = getAdminFailedAttempts();
+        if (attempts > 0 && attempts < MAX_ADMIN_ATTEMPTS) {
+            if (passError) {
+                passError.textContent = `⚠️ Incorrect passcode. ${MAX_ADMIN_ATTEMPTS - attempts} attempt(s) remaining before 5 min cooldown.`;
+                passError.style.display = 'block';
+            }
+        } else if (passError && !passError.textContent.includes('Incorrect')) {
+            passError.style.display = 'none';
+        }
+    }
+}
 
 function checkAuth() {
     if (sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true') {
@@ -122,22 +213,34 @@ function checkAuth() {
     } else {
         authOverlay.style.display = 'flex';
         adminDashboard.style.display = 'none';
-        if (passInput) passInput.focus();
+        updateLockoutUI();
+        if (passInput && !passInput.disabled) passInput.focus();
     }
 }
 
 passForm?.addEventListener('submit', (e) => {
     e.preventDefault();
+    const remaining = getAdminLockoutRemaining();
+    if (remaining > 0) {
+        updateLockoutUI();
+        return;
+    }
+
     const val = passInput.value.trim();
     if (val === DEFAULT_PASSCODE) {
+        clearAdminFailedAttempts();
         sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
         passError.style.display = 'none';
         checkAuth();
         showToast('Admin dashboard unlocked successfully!', 'success');
     } else {
-        passError.textContent = 'Incorrect passcode. Try default: admin123';
-        passError.style.display = 'block';
-        passInput.select();
+        const result = recordAdminFailedAttempt();
+        updateLockoutUI();
+        if (!result.locked) {
+            passError.textContent = `Incorrect passcode. ${result.attemptsLeft} attempt(s) left before 5 minute cooldown.`;
+            passError.style.display = 'block';
+            passInput.select();
+        }
     }
 });
 
@@ -628,6 +731,59 @@ document.getElementById('resetDefaultsBtn')?.addEventListener('click', () => {
 // ── SAVE ALL & PUBLISH ──────────────────────────────────────
 document.getElementById('saveAllBtn')?.addEventListener('click', () => {
     saveData(players);
+});
+
+// ── DOWNLOAD / EXPORT LEADERBOARD DATA ──────────────────────
+function downloadFile(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportDataBtn')?.addEventListener('click', () => {
+    if (!players || players.length === 0) {
+        showToast('No player data to export!', 'error');
+        return;
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const jsonStr = JSON.stringify(players, null, 2);
+    downloadFile(jsonStr, `thespike_leaderboard_${timestamp}.json`, 'application/json');
+    showToast(`Exported ${players.length} players as JSON!`, 'success');
+});
+
+document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+    if (!players || players.length === 0) {
+        showToast('No player data to export!', 'error');
+        return;
+    }
+    const headers = ['Rank', 'Player Name', 'Speed (KM/H)', 'Character', 'Setup / Stats', 'State', 'City', 'Proof Link'];
+    const rows = players.map((p, idx) => {
+        const escapeCsv = (str) => {
+            const val = (str ?? '').toString();
+            return `"${val.replace(/"/g, '""')}"`;
+        };
+        return [
+            idx + 1,
+            escapeCsv(p.tag),
+            p.speed || 0,
+            escapeCsv(p.character),
+            escapeCsv(p.setup),
+            escapeCsv(p.state),
+            escapeCsv(p.city),
+            escapeCsv(p.proof)
+        ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadFile(csvContent, `thespike_leaderboard_${timestamp}.csv`, 'text/csv;charset=utf-8;');
+    showToast(`Exported ${players.length} players as CSV!`, 'success');
 });
 
 // ── TOAST NOTIFICATION ──────────────────────────────────────

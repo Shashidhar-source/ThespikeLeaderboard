@@ -259,6 +259,19 @@
     background: rgba(255,30,30,0.25);
 }
 
+.info-btn {
+    background: rgba(0, 168, 255, 0.15);
+    color: #4cd3ff;
+    border: 1px solid rgba(0, 168, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(0, 168, 255, 0.15);
+}
+.info-btn:hover {
+    background: rgba(0, 168, 255, 0.3);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 168, 255, 0.35);
+}
+
 /* Stats Grid */
 .admin-stats-grid {
     display: grid;
