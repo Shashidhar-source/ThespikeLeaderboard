@@ -737,20 +737,23 @@ document.getElementById('saveAllBtn')?.addEventListener('click', () => {
 function buildBannerDOM(playersList) {
     const container = document.createElement('div');
     container.id = 'exportBannerContainer';
+    // Use visibility hidden or offscreen positioning without affecting opacity/drawing
     container.style.cssText = `
-        position: fixed;
-        left: -9999px;
+        position: absolute;
+        left: 0;
         top: 0;
         width: 1200px;
-        background: radial-gradient(circle at 50% 0%, #2a0000 0%, #0c0000 40%, #050505 100%);
+        background-color: #070202;
+        background-image: radial-gradient(circle at 50% 0%, #300000 0%, #110000 45%, #050505 100%);
         color: #ffffff;
-        font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Rajdhani', Arial, sans-serif;
         padding: 40px 48px;
         box-sizing: border-box;
-        border: 2px solid #ff1515;
+        border: 3px solid #ff1515;
         border-radius: 12px;
         box-shadow: 0 0 50px rgba(255, 21, 21, 0.4);
-        z-index: -1000;
+        z-index: 999999;
+        pointer-events: none;
     `;
 
     const topSpeed = playersList.length ? Math.max(...playersList.map(p => p.speed || 0)) : 0;
@@ -758,22 +761,22 @@ function buildBannerDOM(playersList) {
 
     // Header HTML
     const headerHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid rgba(255,21,21,0.5); padding-bottom:20px; margin-bottom:28px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ff1515; padding-bottom:20px; margin-bottom:28px;">
             <div style="display:flex; align-items:center; gap:20px;">
-                <div style="font-size:48px; line-height:1;">⚡</div>
+                <div style="font-size:52px; line-height:1;">⚡</div>
                 <div>
-                    <div style="font-family:'Barlow Condensed', sans-serif; font-size:16px; font-weight:800; color:#ff3b3b; letter-spacing:4px;">THE SPIKE CROSS INDIA</div>
-                    <div style="font-family:'Barlow Condensed', sans-serif; font-size:38px; font-weight:900; font-style:italic; letter-spacing:2px; color:#ffffff; text-shadow:0 0 20px rgba(255,21,21,0.7);">OFFICIAL LEADERBOARD ROSTER</div>
+                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:18px; font-weight:800; color:#ff4444; letter-spacing:4px; text-transform:uppercase;">THE SPIKE CROSS INDIA</div>
+                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:42px; font-weight:900; font-style:italic; letter-spacing:2px; color:#ffffff;">OFFICIAL LEADERBOARD ROSTER</div>
                 </div>
             </div>
             <div style="display:flex; gap:24px; text-align:right;">
-                <div style="background:rgba(255,21,21,0.1); border:1px solid rgba(255,21,21,0.3); padding:8px 18px; border-radius:8px;">
-                    <div style="font-size:11px; color:#ff9999; letter-spacing:1px; font-weight:700;">TOTAL PLAYERS</div>
-                    <div style="font-family:'Barlow Condensed', sans-serif; font-size:26px; font-weight:900; color:#ffffff;">${totalCount}</div>
+                <div style="background:#220505; border:1px solid #ff4444; padding:10px 22px; border-radius:8px;">
+                    <div style="font-size:12px; color:#ff9999; letter-spacing:1px; font-weight:700;">TOTAL PLAYERS</div>
+                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:28px; font-weight:900; color:#ffffff;">${totalCount}</div>
                 </div>
-                <div style="background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.4); padding:8px 18px; border-radius:8px;">
-                    <div style="font-size:11px; color:#ffd700; letter-spacing:1px; font-weight:700;">TOP RECORD</div>
-                    <div style="font-family:'Barlow Condensed', sans-serif; font-size:26px; font-weight:900; color:#ffd700;">${topSpeed} KM/H</div>
+                <div style="background:#291e00; border:1px solid #ffd700; padding:10px 22px; border-radius:8px;">
+                    <div style="font-size:12px; color:#ffd700; letter-spacing:1px; font-weight:700;">TOP RECORD</div>
+                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:28px; font-weight:900; color:#ffd700;">${topSpeed} KM/H</div>
                 </div>
             </div>
         </div>
@@ -782,18 +785,18 @@ function buildBannerDOM(playersList) {
     // Table rows
     const rowsHtml = playersList.map((p, idx) => {
         const rank = idx + 1;
-        let rankBadgeStyle = 'background:rgba(255,255,255,0.08); color:#cccccc; border:1px solid rgba(255,255,255,0.2);';
-        let rowBg = idx % 2 === 0 ? 'background:rgba(20,0,0,0.4);' : 'background:rgba(0,0,0,0.5);';
+        let rankBadgeStyle = 'background:#222222; color:#ffffff; border:1px solid #666666;';
+        let rowBg = idx % 2 === 0 ? 'background-color:#160404;' : 'background-color:#0d0202;';
 
         if (rank === 1) {
-            rankBadgeStyle = 'background:linear-gradient(135deg, #ffd700, #b8860b); color:#000000; font-weight:900; box-shadow:0 0 12px rgba(255,215,0,0.6);';
-            rowBg = 'background:rgba(255,215,0,0.08);';
+            rankBadgeStyle = 'background:#ffd700; color:#000000; font-weight:900; border:1px solid #fff;';
+            rowBg = 'background-color:#2a1b02;';
         } else if (rank === 2) {
-            rankBadgeStyle = 'background:linear-gradient(135deg, #e0e0e0, #808080); color:#000000; font-weight:900; box-shadow:0 0 10px rgba(220,220,220,0.5);';
-            rowBg = 'background:rgba(220,220,220,0.05);';
+            rankBadgeStyle = 'background:#e0e0e0; color:#000000; font-weight:900; border:1px solid #fff;';
+            rowBg = 'background-color:#202020;';
         } else if (rank === 3) {
-            rankBadgeStyle = 'background:linear-gradient(135deg, #cd7f32, #8b4513); color:#ffffff; font-weight:900; box-shadow:0 0 10px rgba(205,127,50,0.5);';
-            rowBg = 'background:rgba(205,127,50,0.05);';
+            rankBadgeStyle = 'background:#cd7f32; color:#ffffff; font-weight:900; border:1px solid #fff;';
+            rowBg = 'background-color:#241203;';
         }
 
         const tag = p.tag || 'Unknown';
@@ -803,23 +806,23 @@ function buildBannerDOM(playersList) {
         const loc = [p.city, p.state].filter(Boolean).join(', ') || 'India';
 
         return `
-            <tr style="${rowBg} border-bottom:1px solid rgba(255,255,255,0.06);">
-                <td style="padding:12px 14px; text-align:center;">
-                    <div style="display:inline-block; width:34px; height:34px; line-height:34px; border-radius:50%; font-family:'Barlow Condensed', sans-serif; font-size:16px; ${rankBadgeStyle}">#${rank}</div>
+            <tr style="${rowBg} border-bottom:1px solid rgba(255,255,255,0.12);">
+                <td style="padding:14px 16px; text-align:center;">
+                    <div style="display:inline-block; width:36px; height:36px; line-height:36px; border-radius:50%; font-family:'Barlow Condensed', Arial, sans-serif; font-size:17px; font-weight:800; ${rankBadgeStyle}">#${rank}</div>
                 </td>
-                <td style="padding:12px 14px; font-weight:700; font-size:17px; color:#ffffff; letter-spacing:0.5px;">
+                <td style="padding:14px 16px; font-weight:800; font-size:19px; color:#ffffff; letter-spacing:0.5px;">
                     ${tag}
                 </td>
-                <td style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:22px; font-weight:900; color:#ff3b3b; font-style:italic;">
-                    ${speed} <span style="font-size:12px; color:#aaa; font-style:normal;">KM/H</span>
+                <td style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:26px; font-weight:900; color:#ff3b3b; font-style:italic;">
+                    ${speed} <span style="font-size:13px; color:#cccccc; font-style:normal;">KM/H</span>
                 </td>
-                <td style="padding:12px 14px; font-size:14px; color:#ffc080; font-weight:600;">
+                <td style="padding:14px 16px; font-size:16px; color:#ffbe76; font-weight:700;">
                     ${char}
                 </td>
-                <td style="padding:12px 14px; font-size:13px; color:#aaaaaa;">
+                <td style="padding:14px 16px; font-size:14px; color:#e0e0e0; font-weight:500;">
                     ${setup}
                 </td>
-                <td style="padding:12px 14px; font-size:13px; color:#dddddd; font-weight:500;">
+                <td style="padding:14px 16px; font-size:15px; color:#ffffff; font-weight:600;">
                     📍 ${loc}
                 </td>
             </tr>
@@ -828,15 +831,15 @@ function buildBannerDOM(playersList) {
 
     // Table HTML
     const tableHtml = `
-        <table style="width:100%; border-collapse:collapse; margin-bottom:24px;">
+        <table style="width:100%; border-collapse:collapse; margin-bottom:28px;">
             <thead>
-                <tr style="background:linear-gradient(90deg, #3d0000, #7a0000, #3d0000); border-bottom:2px solid #ff1515;">
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:center; width:70px;">RANK</th>
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:left;">PLAYER NAME</th>
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:left; width:130px;">TOP SPEED</th>
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:left; width:220px;">CHARACTER</th>
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:left;">SETUP / STATS</th>
-                    <th style="padding:12px 14px; font-family:'Barlow Condensed', sans-serif; font-size:15px; color:#ffffff; letter-spacing:2px; text-align:left; width:180px;">LOCATION</th>
+                <tr style="background:#5a0000; border-bottom:3px solid #ff1515;">
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:center; width:80px;">RANK</th>
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left;">PLAYER NAME</th>
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:150px;">TOP SPEED</th>
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:230px;">CHARACTER</th>
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left;">SETUP / STATS</th>
+                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:190px;">LOCATION</th>
                 </tr>
             </thead>
             <tbody>
@@ -847,7 +850,7 @@ function buildBannerDOM(playersList) {
 
     // Footer HTML
     const footerHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,21,21,0.3); padding-top:16px; font-size:12px; color:#888888;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #ff1515; padding-top:18px; font-size:14px; color:#cccccc; font-weight:600;">
             <div>⚡ The Spike India Official Community | Verified Speeds &amp; Roster</div>
             <div>Generated: ${new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</div>
         </div>
@@ -866,12 +869,19 @@ async function renderBannerCanvas() {
     showToast('Generating banner... please wait.', 'info');
     const container = buildBannerDOM(players);
     try {
-        // Wait a tick for fonts/layout
-        await new Promise(r => setTimeout(r, 200));
+        // Ensure web fonts are ready
+        if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+        }
+        await new Promise(r => setTimeout(r, 300));
         const canvas = await html2canvas(container, {
-            scale: 2, // High resolution for clear text and banners
-            backgroundColor: '#070000',
+            scale: 2, // High resolution
+            backgroundColor: '#070202',
             useCORS: true,
+            allowTaint: true,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 1200,
             logging: false
         });
         document.body.removeChild(container);
