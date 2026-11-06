@@ -733,212 +733,300 @@ document.getElementById('saveAllBtn')?.addEventListener('click', () => {
     saveData(players);
 });
 
-// ── EXPORT LEADERBOARD AS BANNER (IMAGE / PDF) ──────────────
-function buildBannerDOM(playersList) {
-    const container = document.createElement('div');
-    container.id = 'exportBannerContainer';
-    // Use visibility hidden or offscreen positioning without affecting opacity/drawing
-    container.style.cssText = `
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 1200px;
-        background-color: #070202;
-        background-image: radial-gradient(circle at 50% 0%, #300000 0%, #110000 45%, #050505 100%);
-        color: #ffffff;
-        font-family: 'Rajdhani', Arial, sans-serif;
-        padding: 40px 48px;
-        box-sizing: border-box;
-        border: 3px solid #ff1515;
-        border-radius: 12px;
-        box-shadow: 0 0 50px rgba(255, 21, 21, 0.4);
-        z-index: 999999;
-        pointer-events: none;
-    `;
+// ── PURE CANVAS BANNER ENGINE (ULTRA SHARP & 100% OPAQUE) ───
+function drawLeaderboardBanner(playersList) {
+    const scale = 2; // High resolution 2x
+    const width = 1400;
+    const padding = 50;
 
+    const rowHeight = 56;
+    const headerHeight = 160;
+    const tableHeaderHeight = 50;
+    const footerHeight = 60;
+    const totalRows = playersList.length;
+    const height = headerHeight + tableHeaderHeight + (totalRows * rowHeight) + footerHeight + 40;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    // 1. Solid Base Background
+    ctx.fillStyle = '#0a0000';
+    ctx.fillRect(0, 0, width, height);
+
+    // Deep Red Gradient Glow at top
+    const topGlow = ctx.createRadialGradient(width / 2, 0, 50, width / 2, 0, 800);
+    topGlow.addColorStop(0, '#4a0000');
+    topGlow.addColorStop(0.5, '#180000');
+    topGlow.addColorStop(1, '#080000');
+    ctx.fillStyle = topGlow;
+    ctx.fillRect(0, 0, width, height);
+
+    // Outer Cyber Border
+    ctx.strokeStyle = '#ff1515';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(15, 15, width - 30, height - 30);
+
+    // Corner Accents
+    ctx.fillStyle = '#ff1515';
+    const cSize = 25;
+    ctx.fillRect(15, 15, cSize, 6);
+    ctx.fillRect(15, 15, 6, cSize);
+    ctx.fillRect(width - 15 - cSize, 15, cSize, 6);
+    ctx.fillRect(width - 21, 15, 6, cSize);
+    ctx.fillRect(15, height - 21, cSize, 6);
+    ctx.fillRect(15, height - 15 - cSize, 6, cSize);
+    ctx.fillRect(width - 15 - cSize, height - 21, cSize, 6);
+    ctx.fillRect(width - 21, height - 15 - cSize, 6, cSize);
+
+    // 2. Banner Header
+    // Badge
+    ctx.fillStyle = '#ff1515';
+    ctx.font = 'bold 15px Arial, sans-serif';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('⚡ THE SPIKE CROSS INDIA', padding, 65);
+
+    // Main Title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'italic 900 38px Arial, sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.fillText('OFFICIAL LEADERBOARD ROSTER', padding, 110);
+
+    // Stats Badges on Top Right
     const topSpeed = playersList.length ? Math.max(...playersList.map(p => p.speed || 0)) : 0;
-    const totalCount = playersList.length;
 
-    // Header HTML
-    const headerHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ff1515; padding-bottom:20px; margin-bottom:28px;">
-            <div style="display:flex; align-items:center; gap:20px;">
-                <div style="font-size:52px; line-height:1;">⚡</div>
-                <div>
-                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:18px; font-weight:800; color:#ff4444; letter-spacing:4px; text-transform:uppercase;">THE SPIKE CROSS INDIA</div>
-                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:42px; font-weight:900; font-style:italic; letter-spacing:2px; color:#ffffff;">OFFICIAL LEADERBOARD ROSTER</div>
-                </div>
-            </div>
-            <div style="display:flex; gap:24px; text-align:right;">
-                <div style="background:#220505; border:1px solid #ff4444; padding:10px 22px; border-radius:8px;">
-                    <div style="font-size:12px; color:#ff9999; letter-spacing:1px; font-weight:700;">TOTAL PLAYERS</div>
-                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:28px; font-weight:900; color:#ffffff;">${totalCount}</div>
-                </div>
-                <div style="background:#291e00; border:1px solid #ffd700; padding:10px 22px; border-radius:8px;">
-                    <div style="font-size:12px; color:#ffd700; letter-spacing:1px; font-weight:700;">TOP RECORD</div>
-                    <div style="font-family:'Barlow Condensed', Arial, sans-serif; font-size:28px; font-weight:900; color:#ffd700;">${topSpeed} KM/H</div>
-                </div>
-            </div>
-        </div>
-    `;
+    // Stat Box 1: Total Players
+    const b1X = width - padding - 310;
+    ctx.fillStyle = '#220000';
+    ctx.strokeStyle = '#ff3333';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(b1X, 48, 140, 65, 8);
+    ctx.fill();
+    ctx.stroke();
 
-    // Table rows
-    const rowsHtml = playersList.map((p, idx) => {
+    ctx.fillStyle = '#ff9999';
+    ctx.font = 'bold 11px Arial, sans-serif';
+    ctx.fillText('TOTAL PLAYERS', b1X + 16, 70);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillText(`${playersList.length}`, b1X + 16, 100);
+
+    // Stat Box 2: Top Record
+    const b2X = width - padding - 150;
+    ctx.fillStyle = '#261b00';
+    ctx.strokeStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.roundRect(b2X, 48, 150, 65, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 11px Arial, sans-serif';
+    ctx.fillText('TOP RECORD', b2X + 16, 70);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 26px Arial, sans-serif';
+    ctx.fillText(`${topSpeed} KM/H`, b2X + 16, 100);
+
+    // Header dividing line
+    ctx.strokeStyle = '#ff1515';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding, 138);
+    ctx.lineTo(width - padding, 138);
+    ctx.stroke();
+
+    // 3. Table Column Layout
+    const colRank = padding + 15;
+    const colName = padding + 90;
+    const colSpeed = padding + 390;
+    const colChar = padding + 580;
+    const colSetup = padding + 860;
+    const colLoc = padding + 1100;
+
+    const tableStartY = 160;
+
+    // Table Header Row Background
+    ctx.fillStyle = '#550000';
+    ctx.fillRect(padding, tableStartY, width - (padding * 2), tableHeaderHeight);
+
+    // Table Header Line
+    ctx.strokeStyle = '#ff3333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(padding, tableStartY, width - (padding * 2), tableHeaderHeight);
+
+    // Table Header Text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Arial, sans-serif';
+    const thY = tableStartY + 31;
+    ctx.fillText('RANK', colRank, thY);
+    ctx.fillText('PLAYER NAME / TAG', colName, thY);
+    ctx.fillText('TOP SPEED', colSpeed, thY);
+    ctx.fillText('CHARACTER', colChar, thY);
+    ctx.fillText('SETUP / STATS', colSetup, thY);
+    ctx.fillText('LOCATION', colLoc, thY);
+
+    // 4. Player Rows
+    let curY = tableStartY + tableHeaderHeight;
+
+    playersList.forEach((p, idx) => {
         const rank = idx + 1;
-        let rankBadgeStyle = 'background:#222222; color:#ffffff; border:1px solid #666666;';
-        let rowBg = idx % 2 === 0 ? 'background-color:#160404;' : 'background-color:#0d0202;';
 
+        // Row background
         if (rank === 1) {
-            rankBadgeStyle = 'background:#ffd700; color:#000000; font-weight:900; border:1px solid #fff;';
-            rowBg = 'background-color:#2a1b02;';
+            ctx.fillStyle = '#261b02';
         } else if (rank === 2) {
-            rankBadgeStyle = 'background:#e0e0e0; color:#000000; font-weight:900; border:1px solid #fff;';
-            rowBg = 'background-color:#202020;';
+            ctx.fillStyle = '#222222';
         } else if (rank === 3) {
-            rankBadgeStyle = 'background:#cd7f32; color:#ffffff; font-weight:900; border:1px solid #fff;';
-            rowBg = 'background-color:#241203;';
+            ctx.fillStyle = '#261304';
+        } else if (idx % 2 === 0) {
+            ctx.fillStyle = '#140303';
+        } else {
+            ctx.fillStyle = '#0d0101';
         }
+        ctx.fillRect(padding, curY, width - (padding * 2), rowHeight);
 
-        const tag = p.tag || 'Unknown';
-        const speed = p.speed || 0;
-        const char = p.character || '—';
-        const setup = p.setup || '—';
+        // Row divider line
+        ctx.strokeStyle = '#2b0a0a';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, curY + rowHeight);
+        ctx.lineTo(width - padding, curY + rowHeight);
+        ctx.stroke();
+
+        const textY = curY + 36;
+
+        // Rank Badge
+        let badgeBg = '#333333';
+        let badgeColor = '#ffffff';
+        if (rank === 1) { badgeBg = '#ffd700'; badgeColor = '#000000'; }
+        else if (rank === 2) { badgeBg = '#e0e0e0'; badgeColor = '#000000'; }
+        else if (rank === 3) { badgeBg = '#cd7f32'; badgeColor = '#ffffff'; }
+
+        ctx.fillStyle = badgeBg;
+        ctx.beginPath();
+        ctx.roundRect(colRank - 5, curY + 12, 40, 32, 6);
+        ctx.fill();
+
+        ctx.fillStyle = badgeColor;
+        ctx.font = 'bold 15px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`#${rank}`, colRank + 15, textY - 3);
+        ctx.textAlign = 'left';
+
+        // Player Name
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Arial, sans-serif';
+        const tagText = (p.tag || 'Unknown').substring(0, 24);
+        ctx.fillText(tagText, colName, textY);
+
+        // Speed
+        ctx.fillStyle = '#ff3b3b';
+        ctx.font = 'italic 900 22px Arial, sans-serif';
+        const speedText = `${p.speed || 0}`;
+        ctx.fillText(speedText, colSpeed, textY);
+        ctx.fillStyle = '#aaaaaa';
+        ctx.font = 'normal 12px Arial, sans-serif';
+        ctx.fillText('KM/H', colSpeed + ctx.measureText(speedText).width + 8, textY - 2);
+
+        // Character
+        ctx.fillStyle = '#ffbe76';
+        ctx.font = 'bold 15px Arial, sans-serif';
+        const charText = (p.character || '—').substring(0, 22);
+        ctx.fillText(charText, colChar, textY);
+
+        // Setup
+        ctx.fillStyle = '#cccccc';
+        ctx.font = '14px Arial, sans-serif';
+        const setupText = (p.setup || '—').substring(0, 24);
+        ctx.fillText(setupText, colSetup, textY);
+
+        // Location
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '14px Arial, sans-serif';
         const loc = [p.city, p.state].filter(Boolean).join(', ') || 'India';
+        ctx.fillText(`📍 ${loc.substring(0, 20)}`, colLoc, textY);
 
-        return `
-            <tr style="${rowBg} border-bottom:1px solid rgba(255,255,255,0.12);">
-                <td style="padding:14px 16px; text-align:center;">
-                    <div style="display:inline-block; width:36px; height:36px; line-height:36px; border-radius:50%; font-family:'Barlow Condensed', Arial, sans-serif; font-size:17px; font-weight:800; ${rankBadgeStyle}">#${rank}</div>
-                </td>
-                <td style="padding:14px 16px; font-weight:800; font-size:19px; color:#ffffff; letter-spacing:0.5px;">
-                    ${tag}
-                </td>
-                <td style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:26px; font-weight:900; color:#ff3b3b; font-style:italic;">
-                    ${speed} <span style="font-size:13px; color:#cccccc; font-style:normal;">KM/H</span>
-                </td>
-                <td style="padding:14px 16px; font-size:16px; color:#ffbe76; font-weight:700;">
-                    ${char}
-                </td>
-                <td style="padding:14px 16px; font-size:14px; color:#e0e0e0; font-weight:500;">
-                    ${setup}
-                </td>
-                <td style="padding:14px 16px; font-size:15px; color:#ffffff; font-weight:600;">
-                    📍 ${loc}
-                </td>
-            </tr>
-        `;
-    }).join('');
+        curY += rowHeight;
+    });
 
-    // Table HTML
-    const tableHtml = `
-        <table style="width:100%; border-collapse:collapse; margin-bottom:28px;">
-            <thead>
-                <tr style="background:#5a0000; border-bottom:3px solid #ff1515;">
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:center; width:80px;">RANK</th>
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left;">PLAYER NAME</th>
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:150px;">TOP SPEED</th>
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:230px;">CHARACTER</th>
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left;">SETUP / STATS</th>
-                    <th style="padding:14px 16px; font-family:'Barlow Condensed', Arial, sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:2px; text-align:left; width:190px;">LOCATION</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rowsHtml}
-            </tbody>
-        </table>
-    `;
+    // 5. Table Outer Border
+    ctx.strokeStyle = '#ff2222';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(padding, tableStartY, width - (padding * 2), tableHeaderHeight + (totalRows * rowHeight));
 
-    // Footer HTML
-    const footerHtml = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #ff1515; padding-top:18px; font-size:14px; color:#cccccc; font-weight:600;">
-            <div>⚡ The Spike India Official Community | Verified Speeds &amp; Roster</div>
-            <div>Generated: ${new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</div>
-        </div>
-    `;
+    // 6. Footer
+    ctx.fillStyle = '#888888';
+    ctx.font = 'bold 13px Arial, sans-serif';
+    const footerY = curY + 30;
+    ctx.fillText('⚡ The Spike Cross India Official Community | Verified Speeds & Record Roster', padding, footerY);
 
-    container.innerHTML = headerHtml + tableHtml + footerHtml;
-    document.body.appendChild(container);
-    return container;
-}
+    const dateStr = `Exported: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(dateStr, width - padding, footerY);
+    ctx.textAlign = 'left';
 
-async function renderBannerCanvas() {
-    if (!players || players.length === 0) {
-        showToast('No players available to export!', 'error');
-        return null;
-    }
-    showToast('Generating banner... please wait.', 'info');
-    const container = buildBannerDOM(players);
-    try {
-        // Ensure web fonts are ready
-        if (document.fonts && document.fonts.ready) {
-            await document.fonts.ready;
-        }
-        await new Promise(r => setTimeout(r, 300));
-        const canvas = await html2canvas(container, {
-            scale: 2, // High resolution
-            backgroundColor: '#070202',
-            useCORS: true,
-            allowTaint: true,
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: 1200,
-            logging: false
-        });
-        document.body.removeChild(container);
-        return canvas;
-    } catch (err) {
-        if (container.parentNode) {
-            document.body.removeChild(container);
-        }
-        console.error('Banner render error:', err);
-        showToast('Failed to generate banner image.', 'error');
-        return null;
-    }
+    return canvas;
 }
 
 // Export as Image (PNG)
-document.getElementById('exportBannerImgBtn')?.addEventListener('click', async () => {
-    const canvas = await renderBannerCanvas();
-    if (!canvas) return;
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = `TheSpike_Leaderboard_Banner_${timestamp}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('Banner image downloaded successfully!', 'success');
+document.getElementById('exportBannerImgBtn')?.addEventListener('click', () => {
+    if (!players || players.length === 0) {
+        showToast('No players available to export!', 'error');
+        return;
+    }
+    showToast('Rendering high-contrast banner...', 'info');
+    setTimeout(() => {
+        try {
+            const canvas = drawLeaderboardBanner(players);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = `TheSpike_Leaderboard_Banner_${timestamp}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Banner image downloaded crystal clear!', 'success');
+        } catch (err) {
+            console.error('Banner export error:', err);
+            showToast('Failed to export banner.', 'error');
+        }
+    }, 50);
 });
 
 // Export as PDF
-document.getElementById('exportBannerPdfBtn')?.addEventListener('click', async () => {
-    const canvas = await renderBannerCanvas();
-    if (!canvas) return;
-
-    try {
-        const { jsPDF } = window.jspdf;
-        const imgData = canvas.toDataURL('image/png');
-
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-
-        // Create PDF with custom size matching image proportions in landscape
-        const orientation = imgWidth > imgHeight ? 'landscape' : 'portrait';
-        const pdf = new jsPDF({
-            orientation,
-            unit: 'px',
-            format: [imgWidth, imgHeight]
-        });
-
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        pdf.save(`TheSpike_Leaderboard_Banner_${timestamp}.pdf`);
-        showToast('Leaderboard PDF downloaded successfully!', 'success');
-    } catch (err) {
-        console.error('PDF generation error:', err);
-        showToast('Failed to generate PDF.', 'error');
+document.getElementById('exportBannerPdfBtn')?.addEventListener('click', () => {
+    if (!players || players.length === 0) {
+        showToast('No players available to export!', 'error');
+        return;
     }
+    showToast('Generating high-res PDF...', 'info');
+    setTimeout(() => {
+        try {
+            const canvas = drawLeaderboardBanner(players);
+            const { jsPDF } = window.jspdf;
+            const imgData = canvas.toDataURL('image/png');
+
+            const pdfWidth = canvas.width;
+            const pdfHeight = canvas.height;
+
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [pdfWidth, pdfHeight]
+            });
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            pdf.save(`TheSpike_Leaderboard_Banner_${timestamp}.pdf`);
+            showToast('Leaderboard PDF downloaded successfully!', 'success');
+        } catch (err) {
+            console.error('PDF export error:', err);
+            showToast('Failed to generate PDF.', 'error');
+        }
+    }, 50);
 });
 
 // ── TOAST NOTIFICATION ──────────────────────────────────────
