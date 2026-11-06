@@ -733,15 +733,40 @@ document.getElementById('saveAllBtn')?.addEventListener('click', () => {
     saveData(players);
 });
 
-// ── PURE CANVAS BANNER ENGINE (ULTRA SHARP & 100% OPAQUE) ───
-function drawLeaderboardBanner(playersList) {
-    const scale = 2; // High resolution 2x
-    const width = 1400;
-    const padding = 50;
+// ── PURE CANVAS BANNER ENGINE (WITH CHARACTER AVATAR IMAGES) ──
+function loadSingleImage(src) {
+    return new Promise((resolve) => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
 
-    const rowHeight = 56;
+async function preloadPlayerImages(playersList) {
+    const promises = playersList.map(async (p) => {
+        const info = resolveCharacterInfo(p.character, p.tag);
+        // Try candidate paths in order of preference
+        const candidates = [info.pngSrc, info.playerPng, info.jpgSrc, info.playerJpg].filter(Boolean);
+        for (const src of candidates) {
+            const loaded = await loadSingleImage(src);
+            if (loaded) return loaded;
+        }
+        return null;
+    });
+    return Promise.all(promises);
+}
+
+function drawLeaderboardBanner(playersList, loadedImages = []) {
+    const scale = 2; // High resolution 2x
+    const width = 1450;
+    const padding = 45;
+
+    const rowHeight = 64;
     const headerHeight = 160;
-    const tableHeaderHeight = 50;
+    const tableHeaderHeight = 52;
     const footerHeight = 60;
     const totalRows = playersList.length;
     const height = headerHeight + tableHeaderHeight + (totalRows * rowHeight) + footerHeight + 40;
@@ -838,13 +863,14 @@ function drawLeaderboardBanner(playersList) {
     ctx.lineTo(width - padding, 138);
     ctx.stroke();
 
-    // 3. Table Column Layout
+    // 3. Table Column Layout (With Image Column!)
     const colRank = padding + 15;
-    const colName = padding + 90;
-    const colSpeed = padding + 390;
-    const colChar = padding + 580;
-    const colSetup = padding + 860;
-    const colLoc = padding + 1100;
+    const colImg = padding + 75;
+    const colName = padding + 150;
+    const colSpeed = padding + 440;
+    const colChar = padding + 630;
+    const colSetup = padding + 900;
+    const colLoc = padding + 1150;
 
     const tableStartY = 160;
 
@@ -860,8 +886,9 @@ function drawLeaderboardBanner(playersList) {
     // Table Header Text
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px Arial, sans-serif';
-    const thY = tableStartY + 31;
+    const thY = tableStartY + 32;
     ctx.fillText('RANK', colRank, thY);
+    ctx.fillText('AVATAR', colImg, thY);
     ctx.fillText('PLAYER NAME / TAG', colName, thY);
     ctx.fillText('TOP SPEED', colSpeed, thY);
     ctx.fillText('CHARACTER', colChar, thY);
@@ -888,6 +915,18 @@ function drawLeaderboardBanner(playersList) {
         }
         ctx.fillRect(padding, curY, width - (padding * 2), rowHeight);
 
+        // Podium border indicator on left edge
+        if (rank === 1) {
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(padding, curY, 5, rowHeight);
+        } else if (rank === 2) {
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(padding, curY, 5, rowHeight);
+        } else if (rank === 3) {
+            ctx.fillStyle = '#cd7f32';
+            ctx.fillRect(padding, curY, 5, rowHeight);
+        }
+
         // Row divider line
         ctx.strokeStyle = '#2b0a0a';
         ctx.lineWidth = 1;
@@ -896,7 +935,7 @@ function drawLeaderboardBanner(playersList) {
         ctx.lineTo(width - padding, curY + rowHeight);
         ctx.stroke();
 
-        const textY = curY + 36;
+        const textY = curY + 40;
 
         // Rank Badge
         let badgeBg = '#333333';
@@ -907,14 +946,50 @@ function drawLeaderboardBanner(playersList) {
 
         ctx.fillStyle = badgeBg;
         ctx.beginPath();
-        ctx.roundRect(colRank - 5, curY + 12, 40, 32, 6);
+        ctx.roundRect(colRank - 5, curY + 14, 40, 36, 6);
         ctx.fill();
 
         ctx.fillStyle = badgeColor;
-        ctx.font = 'bold 15px Arial, sans-serif';
+        ctx.font = 'bold 16px Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`#${rank}`, colRank + 15, textY - 3);
         ctx.textAlign = 'left';
+
+        // ── Character Avatar Image ──
+        const avatarSize = 46;
+        const avatarX = colImg + 5;
+        const avatarY = curY + 9;
+        const imgObj = loadedImages[idx];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        // Avatar background circle
+        ctx.fillStyle = '#1c0505';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+
+        if (imgObj) {
+            ctx.drawImage(imgObj, avatarX, avatarY, avatarSize, avatarSize);
+        } else {
+            // Monogram fallback
+            const initial = (p.tag || 'P').trim().charAt(0).toUpperCase();
+            ctx.fillStyle = '#ff1515';
+            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(initial, avatarX + avatarSize / 2, avatarY + 31);
+            ctx.textAlign = 'left';
+        }
+        ctx.restore();
+
+        // Circular ring border for avatar
+        ctx.strokeStyle = rank === 1 ? '#ffd700' : (rank === 2 ? '#e0e0e0' : (rank === 3 ? '#cd7f32' : 'rgba(255,255,255,0.2)'));
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+        ctx.stroke();
 
         // Player Name
         ctx.fillStyle = '#ffffff';
@@ -924,11 +999,11 @@ function drawLeaderboardBanner(playersList) {
 
         // Speed
         ctx.fillStyle = '#ff3b3b';
-        ctx.font = 'italic 900 22px Arial, sans-serif';
+        ctx.font = 'italic 900 24px Arial, sans-serif';
         const speedText = `${p.speed || 0}`;
         ctx.fillText(speedText, colSpeed, textY);
         ctx.fillStyle = '#aaaaaa';
-        ctx.font = 'normal 12px Arial, sans-serif';
+        ctx.font = 'normal 13px Arial, sans-serif';
         ctx.fillText('KM/H', colSpeed + ctx.measureText(speedText).width + 8, textY - 2);
 
         // Character
@@ -972,61 +1047,59 @@ function drawLeaderboardBanner(playersList) {
 }
 
 // Export as Image (PNG)
-document.getElementById('exportBannerImgBtn')?.addEventListener('click', () => {
+document.getElementById('exportBannerImgBtn')?.addEventListener('click', async () => {
     if (!players || players.length === 0) {
         showToast('No players available to export!', 'error');
         return;
     }
-    showToast('Rendering high-contrast banner...', 'info');
-    setTimeout(() => {
-        try {
-            const canvas = drawLeaderboardBanner(players);
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const a = document.createElement('a');
-            a.href = canvas.toDataURL('image/png');
-            a.download = `TheSpike_Leaderboard_Banner_${timestamp}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showToast('Banner image downloaded crystal clear!', 'success');
-        } catch (err) {
-            console.error('Banner export error:', err);
-            showToast('Failed to export banner.', 'error');
-        }
-    }, 50);
+    showToast('Loading character avatars & rendering banner...', 'info');
+    try {
+        const loadedImages = await preloadPlayerImages(players);
+        const canvas = drawLeaderboardBanner(players, loadedImages);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = `TheSpike_Leaderboard_Banner_${timestamp}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('Banner image with avatars exported successfully!', 'success');
+    } catch (err) {
+        console.error('Banner export error:', err);
+        showToast('Failed to export banner.', 'error');
+    }
 });
 
 // Export as PDF
-document.getElementById('exportBannerPdfBtn')?.addEventListener('click', () => {
+document.getElementById('exportBannerPdfBtn')?.addEventListener('click', async () => {
     if (!players || players.length === 0) {
         showToast('No players available to export!', 'error');
         return;
     }
-    showToast('Generating high-res PDF...', 'info');
-    setTimeout(() => {
-        try {
-            const canvas = drawLeaderboardBanner(players);
-            const { jsPDF } = window.jspdf;
-            const imgData = canvas.toDataURL('image/png');
+    showToast('Loading character avatars & generating PDF...', 'info');
+    try {
+        const loadedImages = await preloadPlayerImages(players);
+        const canvas = drawLeaderboardBanner(players, loadedImages);
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
 
-            const pdfWidth = canvas.width;
-            const pdfHeight = canvas.height;
+        const pdfWidth = canvas.width;
+        const pdfHeight = canvas.height;
 
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: [pdfWidth, pdfHeight]
-            });
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [pdfWidth, pdfHeight]
+        });
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            pdf.save(`TheSpike_Leaderboard_Banner_${timestamp}.pdf`);
-            showToast('Leaderboard PDF downloaded successfully!', 'success');
-        } catch (err) {
-            console.error('PDF export error:', err);
-            showToast('Failed to generate PDF.', 'error');
-        }
-    }, 50);
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        pdf.save(`TheSpike_Leaderboard_Banner_${timestamp}.pdf`);
+        showToast('Leaderboard PDF with avatars exported successfully!', 'success');
+    } catch (err) {
+        console.error('PDF export error:', err);
+        showToast('Failed to generate PDF.', 'error');
+    }
 });
 
 // ── TOAST NOTIFICATION ──────────────────────────────────────
